@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rios_pastries/presentation/screens/login_screen.dart';
 
 import '../../controllers/auth_controller.dart';
 
@@ -65,14 +66,33 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               if (user == null)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Inicia sesión para ver los datos de tu perfil.',
-                      textAlign: TextAlign.center,
+                Column(
+                  children: [
+                    Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text(
+                          'Inicia sesión para ver los datos de tu perfil.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
-                  ),
+                    SizedBox(height: 20,),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => LoginScreen(
+                              authController: authController,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.login),
+                      label: const Text('Iniciar sesión'),
+                    ),
+                  ],
                 )
               else ...[
                 Card(

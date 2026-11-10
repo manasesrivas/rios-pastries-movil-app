@@ -61,8 +61,6 @@ class DioClient {
           return responseData['message'].toString();
         }
 
-        print(responseData);
-
         if (statusCode == 400) return 'Solicitud inválida. Revisa los datos enviados.';
         if (statusCode == 401) return 'Credenciales incorrectas o sesión expirada.';
         if (statusCode == 403) return 'Acceso denegado.';

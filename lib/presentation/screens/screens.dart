@@ -5,6 +5,7 @@ import '../providers/cart_provider.dart';
 import 'users/user_profile.dart';
 import 'products/products_screen.dart';
 import 'orders/orders_screen.dart';
+import 'reservations/reservations_page.dart';
 import 'cart_page.dart';
 
 List<Widget> buildNavigationScreens(
@@ -17,6 +18,7 @@ List<Widget> buildNavigationScreens(
       cartProvider: cartProvider,
     ),
     OrdersSection(authController: authController),
+    ReservationsPage(authController: authController),
     CartPage(
       authController: authController,
       cartProvider: cartProvider,
@@ -71,6 +73,11 @@ class _BaseScreenState extends State<BaseScreen> {
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
             label: 'Órdenes',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.event_outlined),
+            selectedIcon: Icon(Icons.event),
+            label: 'Reservas',
           ),
           NavigationDestination(
             icon: _CartNavigationIcon(cartProvider: _cartProvider),

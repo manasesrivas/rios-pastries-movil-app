@@ -12,6 +12,7 @@ class ApiConstants {
 
   static const String productsEndPoint = 'products/';
   static const String ordersEndPoint = 'orders/';
+  static const String reservationsEndPoint = 'reservations/';
   static const String validateOrderAvailabilityEndPoint = 'orders/validate/';
 
   // Timeouts

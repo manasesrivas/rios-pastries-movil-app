@@ -25,6 +25,8 @@ class RiosPastriesApp extends StatelessWidget {
       title: 'Ríos Pastries',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       home: AuthGate(authController: authController),
     );
   }

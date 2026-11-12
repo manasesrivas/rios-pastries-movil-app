@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -48,8 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(
             widget.authController.errorMessage ?? 'Error de autenticación',
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
           ),
-          backgroundColor: AppTheme.errorColor,
+          backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -64,6 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
       listenable: widget.authController,
       builder: (context, _) {
         final auth = widget.authController;
+        final scheme = Theme.of(context).colorScheme;
 
         return Scaffold(
           body: SafeArea(
@@ -81,40 +82,40 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(22),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryLight,
+                            color: scheme.primaryContainer,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppTheme.primaryColor.withOpacity(0.2),
+                              color: scheme.primary.withValues(alpha: 0.2),
                               width: 2,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.bakery_dining_rounded,
                             size: 64,
-                            color: AppTheme.primaryColor,
+                            color: scheme.onPrimaryContainer,
                           ),
                         ),
                       ),
                       const SizedBox(height: 20),
 
                       // Título y subtítulo
-                      const Text(
+                      Text(
                         'Ríos Pastries',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.w800,
-                          color: AppTheme.textPrimary,
+                          color: scheme.onSurface,
                           letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
+                      Text(
                         'Inicia sesión para gestionar tu repostería',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
-                          color: AppTheme.textSecondary,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -128,23 +129,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEE2E2),
+                            color: scheme.errorContainer,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFFCA5A5)),
+                            border: Border.all(color: scheme.error),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.error_outline_rounded,
-                                color: AppTheme.errorColor,
+                                color: scheme.onErrorContainer,
                                 size: 20,
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   auth.errorMessage!,
-                                  style: const TextStyle(
-                                    color: Color(0xFF991B1B),
+                                  style: TextStyle(
+                                    color: scheme.onErrorContainer,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -224,9 +225,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             onPressed: _fillDemoCredentials,
                             icon: const Icon(Icons.auto_awesome, size: 16),
                             label: const Text('Rellenar credenciales de prueba'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppTheme.primaryColor,
-                            ),
                           ),
                         ),
                     ],

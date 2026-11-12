@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_theme.dart';
 import '../controllers/auth_controller.dart';
 import 'screens.dart';
 
@@ -16,7 +15,7 @@ class AuthGate extends StatelessWidget {
       builder: (context, _) {
         // Mientras se verifica el token guardado en disco al iniciar la app
         if (authController.isLoading && authController.currentToken == null) {
-          return const Scaffold(
+          return Scaffold(
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -24,10 +23,10 @@ class AuthGate extends StatelessWidget {
                   Icon(
                     Icons.bakery_dining_rounded,
                     size: 72,
-                    color: AppTheme.primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  SizedBox(height: 24),
-                  CircularProgressIndicator(color: AppTheme.primaryColor),
+                  const SizedBox(height: 24),
+                  const CircularProgressIndicator(),
                 ],
               ),
             ),

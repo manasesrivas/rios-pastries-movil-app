@@ -69,7 +69,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Stack(
         children: [
           FutureBuilder<ProductModel>(
@@ -116,11 +115,11 @@ class _ProductContent extends StatelessWidget {
     required this.onAdd,
   });
 
-  static const _accent = Color(0xFFFF6B35);
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Stack(
       children: [
@@ -129,7 +128,7 @@ class _ProductContent extends StatelessWidget {
             SliverAppBar(
               expandedHeight: 320,
               pinned: true,
-              backgroundColor: Colors.white,
+              backgroundColor: scheme.surface,
               automaticallyImplyLeading: false, 
               flexibleSpace: FlexibleSpaceBar(
                 background: ClipRRect(
@@ -150,8 +149,8 @@ class _ProductContent extends StatelessWidget {
                       children: [
                         _Chip(
                           label: product.category,
-                          color: _accent.withOpacity(0.12),
-                          textColor: _accent,
+                          color: scheme.primaryContainer,
+                          textColor: scheme.onPrimaryContainer,
                         ),
                         const SizedBox(width: 8),
                         _Chip(
@@ -160,8 +159,8 @@ class _ProductContent extends StatelessWidget {
                               ? Colors.green.withOpacity(0.12)
                               : Colors.red.withOpacity(0.12),
                           textColor: product.available
-                              ? Colors.green.shade700
-                              : Colors.red.shade700,
+                              ? (isDark ? Colors.green.shade300 : Colors.green.shade700)
+                              : (isDark ? Colors.red.shade300 : Colors.red.shade700),
                         ),
                       ],
                     ),
@@ -182,7 +181,7 @@ class _ProductContent extends StatelessWidget {
                           '\$${product.price}',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: _accent,
+                            color: scheme.primary,
                           ),
                         ),
                       ],
@@ -191,11 +190,11 @@ class _ProductContent extends StatelessWidget {
                     Row(
                       children: [
                         Icon(Icons.info_outline,
-                            size: 16, color: Colors.grey.shade600),
+                            size: 16, color: scheme.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Text(
                           'Estado: ${product.status}',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: scheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -210,7 +209,7 @@ class _ProductContent extends StatelessWidget {
                     Text(
                       product.description,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey.shade700,
+                        color: scheme.onSurfaceVariant,
                         height: 1.5,
                       ),
                     ),
@@ -243,8 +242,12 @@ class _ProductImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final placeholder = Container(
-      color: Colors.grey.shade200,
-      child: Icon(Icons.fastfood, size: 72, color: Colors.grey.shade400),
+      color: Theme.of(context).colorScheme.outlineVariant,
+      child: Icon(
+        Icons.fastfood,
+        size: 72,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     );
 
     if (url == null || url!.isEmpty) return placeholder;
@@ -310,7 +313,7 @@ class _BottomBar extends StatelessWidget {
         20, 16, 20, 16 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
@@ -324,7 +327,7 @@ class _BottomBar extends StatelessWidget {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Theme.of(context).scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -355,8 +358,6 @@ class _BottomBar extends StatelessWidget {
             child: ElevatedButton(
               onPressed: enabled ? () => onAdd() : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF6B35),
-                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -380,11 +381,11 @@ class _BottomBar extends StatelessWidget {
 class _ProductSkeleton extends StatelessWidget {
   const _ProductSkeleton();
 
-  Widget _box(double h, {double? w, double r = 12}) => Container(
+  Widget _box(BuildContext context, double h, {double? w, double r = 12}) => Container(
         height: h,
         width: w,
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: Theme.of(context).colorScheme.outlineVariant,
           borderRadius: BorderRadius.circular(r),
         ),
       );
@@ -397,7 +398,7 @@ class _ProductSkeleton extends StatelessWidget {
         Container(
           height: 320,
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
+            color: Theme.of(context).colorScheme.outlineVariant,
             borderRadius: const BorderRadius.vertical(
               bottom: Radius.circular(32),
             ),
@@ -409,18 +410,18 @@ class _ProductSkeleton extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                _box(28, w: 90, r: 20),
+                _box(context, 28, w: 90, r: 20),
                 const SizedBox(width: 8),
-                _box(28, w: 90, r: 20),
+                _box(context, 28, w: 90, r: 20),
               ]),
               const SizedBox(height: 16),
-              _box(28, w: 220),
+              _box(context, 28, w: 220),
               const SizedBox(height: 24),
-              _box(16),
+              _box(context, 16),
               const SizedBox(height: 8),
-              _box(16),
+              _box(context, 16),
               const SizedBox(height: 8),
-              _box(16, w: 200),
+              _box(context, 16, w: 200),
             ],
           ),
         ),
@@ -439,7 +440,7 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.wifi_off, size: 56, color: Colors.grey.shade400),
+          Icon(Icons.wifi_off, size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
           const Text('No se pudo cargar el producto'),
           const SizedBox(height: 12),

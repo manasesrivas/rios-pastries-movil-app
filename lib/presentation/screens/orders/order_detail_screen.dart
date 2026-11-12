@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../data/models/order_model.dart';
 
 class OrderDetailScreen extends StatelessWidget {
@@ -149,7 +148,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: AppTheme.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: emphasize ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -183,9 +182,12 @@ class _OrderItemTile extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CircleAvatar(
-          backgroundColor: AppTheme.primaryLight,
-          child: Icon(Icons.local_cafe_outlined, color: AppTheme.primaryColor),
+        CircleAvatar(
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          child: Icon(
+            Icons.local_cafe_outlined,
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(

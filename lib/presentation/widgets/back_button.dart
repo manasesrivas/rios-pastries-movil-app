@@ -9,11 +9,11 @@ class BackButtonOverlay extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Material(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           shape: const CircleBorder(),
           elevation: 2,
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
             onPressed: () => Navigator.maybePop(context),
           ),
         ),

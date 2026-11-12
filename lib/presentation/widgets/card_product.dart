@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/utils/product_image_url.dart';
+import '../../core/utils/image_url.dart';
 import '../../data/models/product_model.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/cart_provider.dart';
@@ -20,7 +20,7 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = productImageUrl(product.image);
+    final imageUrl = resolveImageUrl(product.image);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
       elevation: 2.0,

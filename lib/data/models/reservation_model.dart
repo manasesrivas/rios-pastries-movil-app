@@ -79,6 +79,7 @@ class ReservationModel {
         status: _nullableString(hallData['status'] ?? json['hallStatus']),
       ),
       venue: VenueModel(
+        id: _nullableInt(venueData['id']),
         name: _firstValue([
           venueData['name'],
           venueData['venueName'],
@@ -250,6 +251,7 @@ class ReservationItem {
 class HallModel {
   final int? id;
   final String venueName;
+  final VenueModel? venue;
   final String hallName;
   final String? image;
   final int? capacity;
@@ -259,6 +261,7 @@ class HallModel {
   const HallModel({
     this.id,
     this.venueName = '',
+    this.venue,
     required this.hallName,
     this.image,
     this.capacity,
@@ -272,6 +275,7 @@ class HallModel {
     return {
       'id': id,
       'venueName': venueName,
+      if (venue != null) 'venue': venue!.toJson(),
       'name': hallName,
       'image': image,
       'capacity': capacity,
@@ -281,9 +285,21 @@ class HallModel {
   }
 
   factory HallModel.fromJson(Map<String, dynamic> json) {
+    final rawVenue = json['venue'];
+    if (rawVenue != null && rawVenue is! Map) {
+      throw const FormatException('El local de la sala no es válido.');
+    }
+    final venue = rawVenue == null
+        ? null
+        : VenueModel.fromJson(rawVenue.cast<String, dynamic>());
     return HallModel(
       id: _nullableInt(json['id']),
-      venueName: _firstValue([json['venueName'], json['venue_name']]),
+      venueName: _firstValue([
+        json['venueName'],
+        json['venue_name'],
+        venue?.name,
+      ]),
+      venue: venue,
       hallName: _firstValue([
         json['hallName'],
         json['hall_name'],
@@ -298,12 +314,14 @@ class HallModel {
 }
 
 class VenueModel {
+  final int? id;
   final String name;
   final String address;
   final String descripcion;
   final String? status;
 
   const VenueModel({
+    this.id,
     required this.name,
     required this.address,
     required this.descripcion,
@@ -314,6 +332,7 @@ class VenueModel {
 
   factory VenueModel.fromJson(Map<String, dynamic> json) {
     return VenueModel(
+      id: _nullableInt(json['id']),
       name: _firstValue([json['name'], json['venueName']]),
       address: _firstValue([json['address'], json['venueAddress']]),
       descripcion: _firstValue([json['descripcion'], json['description']]),
@@ -323,6 +342,7 @@ class VenueModel {
 
   Map<String, dynamic> toJson() {
     return {
+      if (id != null) 'id': id,
       'name': name,
       'address': address,
       'descripcion': descripcion,

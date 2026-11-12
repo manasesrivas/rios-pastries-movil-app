@@ -17,6 +17,13 @@ void main() {
           {
             'id': 1,
             'venueName': 'Local #1',
+            'venue': {
+              'id': 1,
+              'name': 'Local #1',
+              'address': 'San Miguel Centro, San Miguel',
+              'descripcion': 'descripcion',
+              'status': 'activo',
+            },
             'name': 'Sala #1',
             'image': null,
             'capacity': 100,
@@ -33,6 +40,13 @@ void main() {
     expect(halls.single.toJson(), {
       'id': 1,
       'venueName': 'Local #1',
+      'venue': {
+        'id': 1,
+        'name': 'Local #1',
+        'address': 'San Miguel Centro, San Miguel',
+        'descripcion': 'descripcion',
+        'status': 'activo',
+      },
       'name': 'Sala #1',
       'image': null,
       'capacity': 100,

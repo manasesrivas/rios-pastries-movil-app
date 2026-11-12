@@ -1,6 +1,6 @@
 import '../constants/api_constants.dart';
 
-String? productImageUrl(String? image) {
+String? resolveImageUrl(String? image) {
   final path = image?.trim();
   if (path == null || path.isEmpty) return null;
 

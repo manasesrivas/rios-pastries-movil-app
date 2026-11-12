@@ -35,7 +35,13 @@ void main() {
       findsNothing,
     );
 
-    for (final section in ['Inicio', 'Órdenes', 'Reservas', 'Perfil']) {
+    for (final section in [
+      'Inicio',
+      'Órdenes',
+      'Reservas',
+      'Salas',
+      'Perfil',
+    ]) {
       await tester.tap(find.text(section));
       await tester.pumpAndSettle();
 
@@ -57,7 +63,7 @@ void main() {
       expect(find.byTooltip('Carrito'), findsOneWidget);
       expect(
         tester.widget<NavigationBar>(navigation).selectedIndex,
-        ['Inicio', 'Órdenes', 'Reservas', 'Perfil'].indexOf(section),
+        ['Inicio', 'Órdenes', 'Reservas', 'Salas', 'Perfil'].indexOf(section),
       );
     }
 

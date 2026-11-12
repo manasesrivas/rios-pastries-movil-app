@@ -4,6 +4,40 @@ import 'package:rios_pastries/data/models/reservation_create_request.dart';
 import 'package:rios_pastries/data/models/reservation_model.dart';
 
 void main() {
+  test('parses and serializes the nested venue returned with a hall', () {
+    final hall = HallModel.fromJson({
+      'id': 1,
+      'venue': {
+        'id': 2,
+        'name': 'Local #1',
+        'address': 'San Miguel Centro, San Miguel',
+        'descripcion': 'Descripción del local',
+        'status': 'activo',
+      },
+      'name': 'Sala #1',
+      'capacity': 100,
+      'price': '100.00',
+      'status': 'DISPONIBLE',
+    });
+
+    expect(hall.venueName, 'Local #1');
+    expect(hall.venue?.id, 2);
+    expect(hall.venue?.address, 'San Miguel Centro, San Miguel');
+    expect(hall.venue?.descripcion, 'Descripción del local');
+    expect(hall.venue?.status, 'activo');
+    expect(hall.toJson()['venue'], {
+      'id': 2,
+      'name': 'Local #1',
+      'address': 'San Miguel Centro, San Miguel',
+      'descripcion': 'Descripción del local',
+      'status': 'activo',
+    });
+    expect(
+      () => HallModel.fromJson({'name': 'Sala', 'venue': 'invalid'}),
+      throwsFormatException,
+    );
+  });
+
   test('parses and serializes the hall API response', () {
     final hall = HallModel.fromJson({
       'id': 1,

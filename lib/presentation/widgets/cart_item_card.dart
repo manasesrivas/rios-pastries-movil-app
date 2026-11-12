@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/utils/product_image_url.dart';
+import '../../core/utils/image_url.dart';
 import '../../data/models/cart_item.dart';
 
 class CartItemCard extends StatelessWidget {
@@ -129,7 +129,7 @@ class _CartProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = productImageUrl(image);
+    final imageUrl = resolveImageUrl(image);
     final fallback = Container(
       width: 64,
       height: 64,

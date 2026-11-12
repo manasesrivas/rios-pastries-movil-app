@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/product_image_url.dart';
+import '../../../core/utils/image_url.dart';
 import '../../controllers/auth_controller.dart';
 import '../../providers/cart_provider.dart';
 import '../../../data/models/product_model.dart';
@@ -230,7 +230,7 @@ class _ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = productImageUrl(url);
+    final imageUrl = resolveImageUrl(url);
     final placeholder = Container(
       color: Theme.of(context).colorScheme.outlineVariant,
       child: Icon(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rios_pastries/core/utils/product_image_url.dart';
+import 'package:rios_pastries/core/utils/image_url.dart';
 import 'package:rios_pastries/data/models/cart_item.dart';
 import 'package:rios_pastries/data/models/product_model.dart';
 import 'package:rios_pastries/presentation/controllers/auth_controller.dart';
@@ -13,7 +13,7 @@ void main() {
     'resolves Cloudinary paths while preserving escaped names and queries',
     () {
       expect(
-        productImageUrl('image/upload/v123/product%20photo.webp?x=1'),
+        resolveImageUrl('image/upload/v123/product%20photo.webp?x=1'),
         'https://res.cloudinary.com/ddcxvarng/image/upload/v123/product%20photo.webp?x=1',
       );
     },
@@ -21,22 +21,22 @@ void main() {
 
   test('preserves absolute URLs and resolves backend-relative paths', () {
     expect(
-      productImageUrl('https://images.example.com/product.webp'),
+      resolveImageUrl('https://images.example.com/product.webp'),
       'https://images.example.com/product.webp',
     );
     expect(
-      productImageUrl('/media/product.webp'),
+      resolveImageUrl('/media/product.webp'),
       'http://127.0.0.1:8000/media/product.webp',
     );
     expect(
-      productImageUrl('media/product.webp'),
+      resolveImageUrl('media/product.webp'),
       'http://127.0.0.1:8000/api/media/product.webp',
     );
   });
 
   test('keeps missing images empty', () {
-    expect(productImageUrl(null), isNull);
-    expect(productImageUrl('  '), isNull);
+    expect(resolveImageUrl(null), isNull);
+    expect(resolveImageUrl('  '), isNull);
   });
 
   testWidgets('catalog and saved cart items use the resolved image URL', (

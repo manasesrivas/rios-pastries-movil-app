@@ -12,10 +12,11 @@ La aplicación cuenta con una barra de navegación inferior:
 
 - **Inicio:** catálogo de productos.
 - **Órdenes:** historial de órdenes del usuario autenticado.
-- **Carrito:** productos guardados localmente y flujo de compra.
+- **Reservas:** consulta y creación de reservaciones.
+- **Salas:** salas registradas y detalles de su local.
 - **Perfil:** datos disponibles de la cuenta y cierre de sesión.
 
-El catálogo se puede consultar sin iniciar sesión. Las funciones que dependen de
+El carrito está disponible desde la barra superior. El catálogo se puede consultar sin iniciar sesión. Las funciones que dependen de
 la cuenta solicitan autenticación cuando es necesario.
 
 ### Autenticación y perfil
@@ -48,7 +49,7 @@ combinación de usuario y producto es única.
 - Agregar productos e incrementar la cantidad si ya estaban en el carrito.
 - Aumentar o disminuir cantidades, eliminar un producto y vaciar el carrito.
 - Mostrar el subtotal y total de productos disponibles.
-- Indicador con la cantidad de artículos en la pestaña del carrito.
+- Indicador con la cantidad de artículos en el botón del carrito.
 - Mostrar productos no disponibles sin incluirlos en el total.
 - Actualizar la disponibilidad al cargar o refrescar el catálogo.
 - Para agregar al carrito o consultar el contenido es necesario iniciar sesión.
@@ -86,6 +87,12 @@ combinación de usuario y producto es única.
   `total_productos` como dato de solo lectura.
 - La solicitud no envía `cliente`; el backend lo asigna desde el usuario
   autenticado. `estado` al crear se envía como `CONFIRMADA`.
+
+### Salas
+
+- Consulta las salas desde `halls/` con sesión iniciada, recarga y reintento.
+- Cada sala muestra los datos del local incluidos en la misma respuesta, sin
+  realizar una solicitud adicional para el local.
 
 ## Requisitos
 

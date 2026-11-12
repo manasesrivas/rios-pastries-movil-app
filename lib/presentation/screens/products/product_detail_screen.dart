@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/product_image_url.dart';
 import '../../controllers/auth_controller.dart';
 import '../../providers/cart_provider.dart';
 import '../../../data/models/product_model.dart';
@@ -241,6 +242,7 @@ class _ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = productImageUrl(url);
     final placeholder = Container(
       color: Theme.of(context).colorScheme.outlineVariant,
       child: Icon(
@@ -250,13 +252,16 @@ class _ProductImage extends StatelessWidget {
       ),
     );
 
-    if (url == null || url!.isEmpty) return placeholder;
+    if (imageUrl == null) return placeholder;
 
     return Image.network(
-      url!,
+      imageUrl,
       fit: BoxFit.cover,
       width: double.infinity,
-      errorBuilder: (_, __, ___) => placeholder,
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint('No se pudo cargar la imagen del producto: $error');
+        return placeholder;
+      },
       loadingBuilder: (context, child, progress) =>
           progress == null ? child : placeholder,
     );

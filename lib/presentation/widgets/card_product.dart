@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/utils/product_image_url.dart';
 import '../../data/models/product_model.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/cart_provider.dart';
@@ -19,6 +20,7 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = productImageUrl(product.image);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
       elevation: 2.0,
@@ -42,14 +44,16 @@ class ProductCard extends StatelessWidget {
           child: ListTile(
             leading: ClipRRect(
               borderRadius: BorderRadius.circular(8.0),
-              child: product.image != null && product.image!.isNotEmpty
+              child: imageUrl != null
                   ? Image.network(
-                      product.image!,
+                      imageUrl,
                       width: 50,
                       height: 50,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.fastfood, size: 30),
+                      errorBuilder: (context, error, stackTrace) {
+                        debugPrint('No se pudo cargar la imagen del producto: $error');
+                        return const Icon(Icons.fastfood, size: 30);
+                      },
                     )
                   : const Icon(Icons.fastfood, size: 30),
             ),

@@ -33,6 +33,9 @@ la cuenta solicitan autenticación cuando es necesario.
 
 - Consulta del catálogo desde Django REST Framework.
 - Pantalla de detalle con imagen, categoría, estado, precio y descripción.
+- Las imágenes admiten URL completas, rutas relativas del backend y rutas de
+  Cloudinary como `image/upload/...`. Para estas últimas, configura
+  `cloudinaryCloudName` en `ApiConstants` con el nombre de tu nube.
 - Selección de cantidad y acción para agregar el producto disponible al carrito.
 - Manejo de carga, error y reintento para el catálogo.
 

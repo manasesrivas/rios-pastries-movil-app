@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/utils/product_image_url.dart';
 import '../../data/models/cart_item.dart';
 
 class CartItemCard extends StatelessWidget {
@@ -128,6 +129,7 @@ class _CartProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = productImageUrl(image);
     final fallback = Container(
       width: 64,
       height: 64,
@@ -141,16 +143,19 @@ class _CartProductImage extends StatelessWidget {
       ),
     );
 
-    if (image == null || image!.isEmpty) return fallback;
+    if (imageUrl == null) return fallback;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: Image.network(
-        image!,
+        imageUrl,
         width: 64,
         height: 64,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => fallback,
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('No se pudo cargar la imagen del producto: $error');
+          return fallback;
+        },
       ),
     );
   }

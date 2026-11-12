@@ -2,13 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../core/utils/error_handler.dart';
 import '../../data/models/cart_availability_issue.dart';
 import '../../data/models/cart_item.dart';
+import '../../data/models/cart_validation_exception.dart';
 import '../../data/models/order_model.dart';
 import '../../data/models/product_model.dart';
 import '../../data/repositories/cart_repository.dart';
 import '../../data/services/order_service.dart';
 import '../controllers/auth_controller.dart';
+
+String cartErrorMessage(Object error) {
+  if (error is CartValidationException) return error.message;
+  logError(error, operation: 'Error del carrito');
+  return genericErrorMessage;
+}
 
 class CartProvider extends ChangeNotifier {
   CartProvider({
@@ -78,7 +86,9 @@ class CartProvider extends ChangeNotifier {
       _loadGeneration++;
       _items = [];
       _isLoading = false;
-      _errorMessage = 'No se pudo identificar al usuario autenticado.';
+      logError(StateError('Usuario autenticado sin identificador válido'),
+          operation: 'Error del carrito');
+      _errorMessage = genericErrorMessage;
       notifyListeners();
       return;
     }
@@ -110,7 +120,8 @@ class CartProvider extends ChangeNotifier {
           _loadGeneration != loadGeneration) {
         return;
       }
-      _errorMessage = 'No se pudo cargar el carrito: $error';
+      logError(error, operation: 'No se pudo cargar el carrito');
+      _errorMessage = genericErrorMessage;
     } finally {
       if (!_disposed &&
           _userId == userId &&
@@ -162,7 +173,7 @@ class CartProvider extends ChangeNotifier {
   }) async {
     final userId = _requireUserId();
     if (_isCheckingOut) {
-      throw StateError('Ya se está procesando el pedido.');
+      throw CartValidationException('Ya se está procesando el pedido.');
     }
 
     _isCheckingOut = true;
@@ -172,12 +183,12 @@ class CartProvider extends ChangeNotifier {
     try {
       await refresh();
       if (_userId != userId) {
-        throw StateError('La sesión cambió. Vuelve a intentarlo.');
+        throw CartValidationException('La sesión cambió. Vuelve a intentarlo.');
       }
 
       final items = List<CartItem>.of(_items);
       if (items.isEmpty) {
-        throw StateError('Tu carrito está vacío.');
+        throw CartValidationException('Tu carrito está vacío.');
       }
       if (items.any((item) => !item.isAvailable)) {
         throw CartAvailabilityException(
@@ -199,7 +210,7 @@ class CartProvider extends ChangeNotifier {
 
       await _orderService.validateAvailability(items);
       if (_userId != userId) {
-        throw StateError('La sesión cambió. Vuelve a intentarlo.');
+        throw CartValidationException('La sesión cambió. Vuelve a intentarlo.');
       }
 
       final order = await _orderService.createOrder(
@@ -239,7 +250,8 @@ class CartProvider extends ChangeNotifier {
       if (_errorMessage != null) throw StateError(_errorMessage!);
     } catch (error) {
       if (_disposed || _userId != userId) return;
-      _errorMessage = 'No se pudo actualizar la disponibilidad del carrito: $error';
+      logError(error, operation: 'No se pudo actualizar el carrito');
+      _errorMessage = genericErrorMessage;
       notifyListeners();
     }
   }
@@ -258,7 +270,7 @@ class CartProvider extends ChangeNotifier {
   int _requireUserId() {
     final userId = _userId;
     if (userId == null) {
-      throw StateError('Inicia sesión para utilizar tu carrito.');
+      throw CartValidationException('Inicia sesión para utilizar tu carrito.');
     }
     return userId;
   }

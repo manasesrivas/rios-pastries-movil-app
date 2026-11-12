@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rios_pastries/presentation/screens/login_screen.dart';
 
+import '../../../core/utils/error_handler.dart';
 import '../../controllers/auth_controller.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -32,10 +33,16 @@ class ProfileScreen extends StatelessWidget {
 
     try {
       await authController.logout();
+      if (authController.errorMessage != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(genericErrorMessage)),
+        );
+      }
     } catch (error) {
+      logError(error, operation: 'No se pudo cerrar sesión');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo cerrar sesión: $error')),
+        const SnackBar(content: Text(genericErrorMessage)),
       );
     }
   }

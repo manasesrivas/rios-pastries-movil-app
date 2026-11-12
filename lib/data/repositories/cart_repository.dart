@@ -1,6 +1,7 @@
 import '../database/cart_database.dart';
 import '../models/cart_availability_issue.dart';
 import '../models/cart_item.dart';
+import '../models/cart_validation_exception.dart';
 import '../models/product_model.dart';
 
 class CartRepository {
@@ -29,7 +30,7 @@ class CartRepository {
       throw ArgumentError.value(quantity, 'quantity', 'Debe ser mayor que 0.');
     }
     if (!product.available) {
-      throw StateError('El producto ya no está disponible.');
+      throw CartValidationException('El producto ya no está disponible.');
     }
 
     final db = await _cartDatabase.database;
@@ -90,7 +91,7 @@ class CartRepository {
       whereArgs: [userId, productId],
     );
     if (updatedCount == 0) {
-      throw StateError('El producto no existe en el carrito.');
+      throw CartValidationException('El producto no existe en el carrito.');
     }
   }
 

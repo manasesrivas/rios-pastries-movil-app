@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/utils.dart';
+import '../../../core/utils/error_handler.dart';
 import '../../../data/models/reservation_model.dart';
 import '../../../data/services/reservation_service.dart';
 import '../../controllers/auth_controller.dart';
@@ -182,9 +183,10 @@ class _ReservationsPageState extends State<ReservationsPage> {
                 }
 
                 if (snapshot.hasError) {
+                  logError(snapshot.error!, operation: 'No se pudieron cargar las reservaciones');
                   return _ReservationsMessage(
                     icon: Icons.error_outline,
-                    message: snapshot.error.toString(),
+                    message: genericErrorMessage,
                     action: ElevatedButton(
                       onPressed: _retry,
                       child: const Text('Reintentar'),

@@ -2,6 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../core/network/dio_client.dart';
+import '../../core/utils/error_handler.dart';
+import '../../core/constants/api_constants.dart';
+import '../../core/storage/token_storage.dart';
 import '../../data/models/cart_item.dart';
 import '../../data/models/reservation_api_error.dart';
 import '../../data/models/reservation_create_request.dart';
@@ -161,13 +164,14 @@ class ReservationController extends ChangeNotifier {
     } on DioException catch (error) {
       _state = ReservationControllerState.error;
       _isRetryableError = _isRetryable(error);
-      if (error.response?.statusCode == 401) {
-        _sessionExpired = true;
-        _errorMessage = 'Tu sesión expiró. Inicia sesión para continuar.';
-        await authController?.logout();
-      } else {
-        _errorMessage = DioClient.handleDioError(error);
-      }
+      final response = error.response;
+      final invalidRefresh = error.requestOptions.path == ApiConstants.refreshEndpoint &&
+          (response?.statusCode == 401 ||
+              (response?.statusCode == 400 &&
+                  response?.data is Map &&
+                  response?.data['code'] == 'token_not_valid'));
+      _sessionExpired = invalidRefresh && !await TokenStorage.hasToken();
+      _errorMessage = DioClient.handleDioError(error);
       _notifyListeners();
       return false;
     } catch (error) {
@@ -203,7 +207,8 @@ class ReservationController extends ChangeNotifier {
 
   String _errorText(Object error) {
     if (error is DioException) return DioClient.handleDioError(error);
-    return error.toString().replaceFirst('Exception: ', '');
+    logError(error, operation: 'Error al gestionar reservaciones');
+    return genericErrorMessage;
   }
 
   void _notifyListeners() {

@@ -52,7 +52,7 @@ class CartPage extends StatelessWidget {
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        SnackBar(content: Text(cartErrorMessage(error))),
       );
     }
   }
@@ -347,7 +347,7 @@ class _CheckoutDialogState extends State<_CheckoutDialog> {
               .map((issue) => 'Producto #${issue.productId}: ${issue.message}')
               .toList();
         } else {
-          _errorMessage = error.toString().replaceFirst('Bad state: ', '');
+          _errorMessage = cartErrorMessage(error);
         }
       });
     } finally {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/image_url.dart';
+import '../../../core/utils/error_handler.dart';
 import '../../controllers/auth_controller.dart';
 import '../../providers/cart_provider.dart';
 import '../../../data/models/product_model.dart';
@@ -62,7 +63,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        SnackBar(content: Text(cartErrorMessage(error))),
       );
     }
   }
@@ -79,6 +80,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 return const _ProductSkeleton();
               }
               if (snapshot.hasError) {
+                logError(snapshot.error!, operation: 'No se pudo cargar el producto');
                 return _ErrorView(onRetry: _reload);
               }
               if (!snapshot.hasData) {
@@ -435,7 +437,7 @@ class _ErrorView extends StatelessWidget {
         children: [
           Icon(Icons.wifi_off, size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
-          const Text('No se pudo cargar el producto'),
+          const Text(genericErrorMessage),
           const SizedBox(height: 12),
           TextButton(onPressed: onRetry, child: const Text('Reintentar')),
         ],

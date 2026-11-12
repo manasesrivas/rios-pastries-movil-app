@@ -48,9 +48,7 @@ class ProductService {
         throw Exception('Error al obtener el producto: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      throw Exception(
-        'Error de red al obtener el detalle del producto: ${e.message}',
-      );
+      throw Exception(DioClient.handleDioError(e));
     }
   }
 

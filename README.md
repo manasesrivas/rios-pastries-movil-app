@@ -25,10 +25,18 @@ la cuenta solicitan autenticación cuando es necesario.
 - Persistencia local del token y los datos del usuario mediante
   `shared_preferences`.
 - Recuperación de la sesión guardada al iniciar la app.
+- Renovación automática del token de acceso ante HTTP 401 con código
+  `token_not_valid`: se envía el refresh a `authentication/token/refresh/`,
+  se guardan los tokens recibidos y se repite una vez la solicitud original.
+  Los cuerpos multipart o de flujo no se repiten automáticamente.
+- Si el refresh es inválido, se limpia la sesión; ante errores de red o del
+  servidor se conserva para poder reintentar.
 - Cierre de sesión con confirmación.
 - Perfil con ID, nombre, correo electrónico y rol disponibles en el usuario.
 - El carrito local se conserva al cerrar sesión y se muestra separado por ID de
   usuario.
+- Los fallos inesperados muestran «Ocurrió un error»; los detalles se registran
+  con `debugPrint`, sin imprimir tokens. Las validaciones conservan sus mensajes.
 
 ### Productos
 

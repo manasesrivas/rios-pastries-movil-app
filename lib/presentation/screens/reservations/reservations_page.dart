@@ -4,25 +4,39 @@ import '../../../core/utils/utils.dart';
 import '../../../data/models/reservation_model.dart';
 import '../../../data/services/reservation_service.dart';
 import '../../controllers/auth_controller.dart';
+import '../../providers/cart_provider.dart';
 import '../login_screen.dart';
 import 'reservation_create_page.dart';
 
 class ReservationsPage extends StatefulWidget {
   final AuthController authController;
+  final CartProvider cartProvider;
+  final ReservationService? reservationService;
+  final Widget? cartAction;
 
-  const ReservationsPage({super.key, required this.authController});
+  const ReservationsPage({
+    super.key,
+    required this.authController,
+    required this.cartProvider,
+    this.reservationService,
+    this.cartAction,
+  });
 
   @override
   State<ReservationsPage> createState() => _ReservationsPageState();
 }
 
 class _ReservationsPageState extends State<ReservationsPage> {
-  final ReservationService _reservationService = ReservationService();
+  late final ReservationService _reservationService;
   Future<List<ReservationModel>>? _reservationsFuture;
+  final Set<String> _selectedStatuses = {
+    ReservationStatus.confirmada.apiValue,
+  };
 
   @override
   void initState() {
     super.initState();
+    _reservationService = widget.reservationService ?? ReservationService();
     if (widget.authController.isAuthenticated) {
       _reservationsFuture = _reservationService.getReservations();
     }
@@ -56,10 +70,59 @@ class _ReservationsPageState extends State<ReservationsPage> {
     });
   }
 
+  Widget _buildStatusFilters() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: Text(
+              'Mostrar:',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          FilterChip(
+            label: const Text('Confirmadas'),
+            selected: _selectedStatuses.contains(
+              ReservationStatus.confirmada.apiValue,
+            ),
+            onSelected: (selected) =>
+                _toggleStatus(ReservationStatus.confirmada.apiValue, selected),
+          ),
+          FilterChip(
+            label: const Text('Finalizadas'),
+            selected: _selectedStatuses.contains(
+              ReservationStatus.finalizada.apiValue,
+            ),
+            onSelected: (selected) =>
+                _toggleStatus(ReservationStatus.finalizada.apiValue, selected),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _toggleStatus(String status, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedStatuses.add(status);
+      } else {
+        _selectedStatuses.remove(status);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis reservaciones')),
+      appBar: AppBar(
+        title: const Text('Mis reservaciones'),
+        actions: [?widget.cartAction],
+      ),
       floatingActionButton: widget.authController.isAuthenticated
           ? FloatingActionButton.extended(
               onPressed: _createReservation,
@@ -137,20 +200,38 @@ class _ReservationsPageState extends State<ReservationsPage> {
                   );
                 }
 
-                return ListView.builder(
+                final filteredReservations = reservations
+                    .where(
+                      (reservation) => _selectedStatuses.contains(
+                        reservation.estado.trim().toUpperCase(),
+                      ),
+                    )
+                    .toList();
+
+                return ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
-                  itemCount: reservations.length,
-                  itemBuilder: (context, index) {
-                    final reservation = reservations[index];
-                    return _ReservationCard(
-                      reservation: reservation,
-                      onEdit: () => _editReservation(reservation),
-                    );
-                  },
+                  children: [
+                    _buildStatusFilters(),
+                    if (filteredReservations.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 36),
+                        child: Text(
+                          _selectedStatuses.isEmpty
+                              ? 'Selecciona un estado para ver reservaciones.'
+                              : 'No hay reservaciones confirmadas o finalizadas.',
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    else
+                      ...filteredReservations.map(
+                        (reservation) =>
+                            _ReservationCard(reservation: reservation),
+                      ),
+                  ],
                 );
               },
             ),
@@ -164,52 +245,14 @@ class _ReservationsPageState extends State<ReservationsPage> {
     final created = await Navigator.push<bool>(
       context,
       MaterialPageRoute<bool>(
-        builder: (_) =>
-            ReservationCreatePage(reservationService: _reservationService),
-      ),
-    );
-    if (created == true && mounted) {
-      await _retry();
-    }
-  }
-
-  Future<void> _editReservation(ReservationModel reservation) async {
-    final hallId = reservation.salaId;
-    if (hallId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se encontró la sala de esta reservación.'),
-        ),
-      );
-      return;
-    }
-
-    final Reservation editableReservation;
-    try {
-      editableReservation = Reservation(
-        id: reservation.id,
-        fechaEvento: reservation.fechaEvento,
-        cantidadPersonas: reservation.cantidadPersonas,
-        sala: hallId,
-        estado: ReservationStatus.fromApiValue(reservation.estado),
-        totalProductos: reservation.totalProductos,
-      );
-    } on FormatException catch (error) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.message)));
-      return;
-    }
-
-    final updated = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute<bool>(
         builder: (_) => ReservationCreatePage(
-          reservation: editableReservation,
+          authController: widget.authController,
+          cartProvider: widget.cartProvider,
           reservationService: _reservationService,
         ),
       ),
     );
-    if (updated == true && mounted) {
+    if (created == true && mounted) {
       await _retry();
     }
   }
@@ -217,9 +260,8 @@ class _ReservationsPageState extends State<ReservationsPage> {
 
 class _ReservationCard extends StatelessWidget {
   final ReservationModel reservation;
-  final VoidCallback onEdit;
 
-  const _ReservationCard({required this.reservation, required this.onEdit});
+  const _ReservationCard({required this.reservation});
 
   @override
   Widget build(BuildContext context) {
@@ -254,11 +296,6 @@ class _ReservationCard extends StatelessWidget {
                 _ReservationStatusBadge(
                   status: reservation.estado,
                   color: statusColor,
-                ),
-                IconButton(
-                  onPressed: onEdit,
-                  tooltip: 'Editar reservación',
-                  icon: const Icon(Icons.edit_outlined),
                 ),
               ],
             ),

@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
+import '../models/reservation_api_error.dart';
+import '../models/reservation_create_request.dart';
 import '../models/reservation_model.dart';
 import 'halls_service.dart';
 
@@ -31,21 +33,48 @@ class ReservationService {
     }
   }
 
-  Future<void> createReservation(Reservation reservation) async {
-    await _dio.post(
-      ApiConstants.reservationsCreateEndPoint,
-      data: reservation.toJson(),
-    );
+  Future<Reservation> createReservation(
+    ReservationCreateRequest request,
+  ) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.reservationsCreateEndPoint,
+        data: request.toJson(),
+      );
+      final data = response.data;
+      if (data is! Map) {
+        throw const FormatException(
+          'El servidor devolvió una reservación inválida.',
+        );
+      }
+      return Reservation.fromJson(data.cast<String, dynamic>());
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 400) {
+        throw ReservationApiException(
+          ReservationApiError.fromJson(error.response?.data),
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<void> updateReservation({
     required int id,
-    required Reservation reservation,
+    required ReservationCreateRequest request,
   }) async {
-    await _dio.patch(
-      '${ApiConstants.reservationsEndPoint}$id/',
-      data: reservation.toJson(),
-    );
+    try {
+      await _dio.patch(
+        '${ApiConstants.reservationsEndPoint}$id/',
+        data: request.toJson(),
+      );
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 400) {
+        throw ReservationApiException(
+          ReservationApiError.fromJson(error.response?.data),
+        );
+      }
+      rethrow;
+    }
   }
 
   List<dynamic> _listFromResponse(dynamic data, String entityName) {

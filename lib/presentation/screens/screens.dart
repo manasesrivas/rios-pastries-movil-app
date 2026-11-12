@@ -11,19 +11,31 @@ import 'cart_page.dart';
 List<Widget> buildNavigationScreens(
   AuthController authController,
   CartProvider cartProvider,
+  VoidCallback onOpenCart,
+  VoidCallback onCloseCart,
 ) {
+  final cartAction = _CartButton(
+    cartProvider: cartProvider,
+    onPressed: onOpenCart,
+  );
   return [
     ProductsScreen(
       authController: authController,
       cartProvider: cartProvider,
+      cartAction: cartAction,
     ),
-    OrdersSection(authController: authController),
-    ReservationsPage(authController: authController),
+    OrdersSection(authController: authController, cartAction: cartAction),
+    ReservationsPage(
+      authController: authController,
+      cartProvider: cartProvider,
+      cartAction: cartAction,
+    ),
+    ProfileScreen(authController: authController, cartAction: cartAction),
     CartPage(
       authController: authController,
       cartProvider: cartProvider,
+      onBack: onCloseCart,
     ),
-    ProfileScreen(authController: authController),
   ];
 }
 
@@ -38,6 +50,7 @@ class BaseScreen extends StatefulWidget {
 
 class _BaseScreenState extends State<BaseScreen> {
   int _currentIndex = 0;
+  bool _showCart = false;
   late final CartProvider _cartProvider;
   late final List<Widget> _screens;
 
@@ -45,7 +58,12 @@ class _BaseScreenState extends State<BaseScreen> {
   void initState() {
     super.initState();
     _cartProvider = CartProvider(authController: widget.authController);
-    _screens = buildNavigationScreens(widget.authController, _cartProvider);
+    _screens = buildNavigationScreens(
+      widget.authController,
+      _cartProvider,
+      () => setState(() => _showCart = true),
+      () => setState(() => _showCart = false),
+    );
   }
 
   @override
@@ -56,67 +74,70 @@ class _BaseScreenState extends State<BaseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() => _currentIndex = index);
-        },
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.storefront_outlined),
-            selectedIcon: Icon(Icons.storefront),
-            label: 'Inicio',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Órdenes',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.event_outlined),
-            selectedIcon: Icon(Icons.event),
-            label: 'Reservas',
-          ),
-          NavigationDestination(
-            icon: _CartNavigationIcon(cartProvider: _cartProvider),
-            selectedIcon: _CartNavigationIcon(
-              cartProvider: _cartProvider,
-              selected: true,
+    return PopScope(
+      canPop: !_showCart,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _showCart) setState(() => _showCart = false);
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _showCart ? _screens.length - 1 : _currentIndex,
+          children: _screens,
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              _currentIndex = index;
+              _showCart = false;
+            });
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.storefront_outlined),
+              selectedIcon: Icon(Icons.storefront),
+              label: 'Inicio',
             ),
-            label: 'Carrito',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
+            NavigationDestination(
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long),
+              label: 'Órdenes',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.event_outlined),
+              selectedIcon: Icon(Icons.event),
+              label: 'Reservas',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Perfil',
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _CartNavigationIcon extends StatelessWidget {
+class _CartButton extends StatelessWidget {
   final CartProvider cartProvider;
-  final bool selected;
+  final VoidCallback onPressed;
 
-  const _CartNavigationIcon({
-    required this.cartProvider,
-    this.selected = false,
-  });
+  const _CartButton({required this.cartProvider, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: cartProvider,
       builder: (context, _) {
-        return Badge(
-          isLabelVisible: cartProvider.itemCount > 0,
-          label: Text('${cartProvider.itemCount}'),
-          child: Icon(
-            selected ? Icons.shopping_bag : Icons.shopping_bag_outlined,
+        return IconButton(
+          tooltip: 'Carrito',
+          onPressed: onPressed,
+          icon: Badge(
+            isLabelVisible: cartProvider.itemCount > 0,
+            label: Text('${cartProvider.itemCount}'),
+            child: const Icon(Icons.shopping_bag_outlined),
           ),
         );
       },

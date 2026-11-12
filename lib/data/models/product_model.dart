@@ -21,15 +21,20 @@ class ProductModel {
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    final id = _productId(json['id']);
+    if (id == null) {
+      throw const FormatException('El producto recibido no tiene un ID válido.');
+    }
+
     return ProductModel(
-      id: json['id'],
-      name: json['name'] ?? '',
-      image: json['image'] ?? '',
-      description: json['description'] ?? '',
-      price: json['price'],
+      id: id,
+      name: json['name']?.toString() ?? '',
+      image: json['image']?.toString(),
+      description: json['description']?.toString() ?? '',
+      price: json['price']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
-      available: json['available'],
-      status: json['status'] ?? '',
+      available: _productAvailability(json['available']),
+      status: json['status']?.toString() ?? '',
     );
   }
 
@@ -44,4 +49,18 @@ class ProductModel {
       'status': status,
     };
   }
+}
+
+int? _productId(dynamic value) {
+  if (value is int) return value;
+  if (value is num && value.isFinite && value == value.roundToDouble()) {
+    return value.toInt();
+  }
+  return int.tryParse(value?.toString() ?? '');
+}
+
+bool _productAvailability(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value == 1;
+  return value?.toString().toLowerCase() == 'true';
 }

@@ -5,20 +5,34 @@ import '../../core/constants/api_constants.dart';
 import 'package:dio/dio.dart';
 
 class ProductService {
-  final Dio _dio = DioClient.instance.dio;
+  ProductService({Dio? dio}) : _dio = dio ?? DioClient.instance.dio;
+
+  final Dio _dio;
 
   Future<List<ProductModel>> getProducts() async {
     try {
       final response = await _dio.get(ApiConstants.productsEndPoint);
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        return data.map((json) => ProductModel.fromJson(json)).toList();
+      final data = response.data;
+      final List<dynamic> results;
+      if (data is List) {
+        results = data;
+      } else if (data is Map && data['results'] is List) {
+        results = data['results'] as List<dynamic>;
       } else {
-        throw Exception('Error al cargar productos: ${response.statusCode}');
+        throw const FormatException(
+          'El servidor devolvió una lista de productos inválida.',
+        );
       }
+      return results.map((item) {
+        if (item is! Map) {
+          throw const FormatException(
+            'El servidor devolvió un producto inválido.',
+          );
+        }
+        return ProductModel.fromJson(item.cast<String, dynamic>());
+      }).toList();
     } on DioException catch (e) {
-      throw Exception('Error de red al obtener productos: ${e.message}');
+      throw Exception(DioClient.handleDioError(e));
     }
   }
 

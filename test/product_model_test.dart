@@ -16,4 +16,18 @@ void main() {
 
     expect(product.category, '3');
   });
+
+  test('parses product fields used by the reservation selector', () {
+    final product = ProductModel.fromJson({
+      'id': 5.0,
+      'name': 'Pastel',
+      'price': 25,
+      'available': false,
+    });
+
+    expect(product.id, 5);
+    expect(product.name, 'Pastel');
+    expect(product.price, '25');
+    expect(product.available, isFalse);
+  });
 }

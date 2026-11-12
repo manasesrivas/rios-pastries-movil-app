@@ -14,7 +14,7 @@ class ApiConstants {
   static const String productsEndPoint = 'products/';
   static const String ordersEndPoint = 'orders/';
   static const String reservationsEndPoint = 'reservations/';
-  static const String reservationsCreateEndPoint = 'reservations/create/';
+  static const String reservationsCreateEndPoint = 'reservations/';
   static const String hallsEndPoint = 'halls/';
   static const String validateOrderAvailabilityEndPoint = 'orders/validate/';
 

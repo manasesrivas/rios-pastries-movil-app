@@ -5,8 +5,9 @@ import '../../controllers/auth_controller.dart';
 
 class ProfileScreen extends StatelessWidget {
   final AuthController authController;
+  final Widget? cartAction;
 
-  const ProfileScreen({super.key, required this.authController});
+  const ProfileScreen({super.key, required this.authController, this.cartAction});
 
   Future<void> _confirmLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -47,7 +48,10 @@ class ProfileScreen extends StatelessWidget {
         final user = authController.currentUser;
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Perfil')),
+          appBar: AppBar(
+            title: const Text('Perfil'),
+            actions: [?cartAction],
+          ),
           body: ListView(
             padding: const EdgeInsets.all(24),
             children: [

@@ -10,20 +10,29 @@ import '../../../core/utils/utils.dart';
 
 class OrdersSection extends StatefulWidget {
   final AuthController authController;
+  final OrderService? orderService;
+  final Widget? cartAction;
 
-  const OrdersSection({super.key, required this.authController});
+  const OrdersSection({
+    super.key,
+    required this.authController,
+    this.orderService,
+    this.cartAction,
+  });
 
   @override
   State<OrdersSection> createState() => _OrdersSectionState();
 }
 
 class _OrdersSectionState extends State<OrdersSection> {
-  final OrderService _orderService = OrderService();
+  late final OrderService _orderService;
   Future<List<OrderModel>>? _ordersFuture;
+  final Set<String> _selectedStatuses = {'PENDIENTE'};
 
   @override
   void initState() {
     super.initState();
+    _orderService = widget.orderService ?? OrderService();
     if (widget.authController.isAuthenticated) {
       _ordersFuture = _orderService.getOrders();
     }
@@ -57,10 +66,55 @@ class _OrdersSectionState extends State<OrdersSection> {
     });
   }
 
+  Widget _buildStatusFilters() {
+    const statuses = {
+      'PENDIENTE': 'Pendientes',
+      'ENTREGADO': 'Entregadas',
+      'APARTADO': 'Apartadas',
+      'CANCELADO': 'Canceladas',
+    };
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: Text(
+              'Mostrar:',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          ...statuses.entries.map(
+            (entry) => FilterChip(
+              label: Text(entry.value),
+              selected: _selectedStatuses.contains(entry.key),
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedStatuses.add(entry.key);
+                  } else {
+                    _selectedStatuses.remove(entry.key);
+                  }
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis Órdenes')),
+      appBar: AppBar(
+        title: const Text('Mis Órdenes'),
+        actions: [?widget.cartAction],
+      ),
       body: ListenableBuilder(
         listenable: widget.authController,
         builder: (context, _) {
@@ -148,22 +202,37 @@ class _OrdersSectionState extends State<OrdersSection> {
 
                 // 3. Estado Sin Datos / Lista Vacía
                 final orders = snapshot.data ?? [];
-                if (orders.isEmpty) {
-                  return ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: const [
-                      SizedBox(height: 200),
-                      Center(child: Text('No hay órdenes registradas.')),
-                    ],
-                  );
-                }
+                final filteredOrders = orders
+                    .where(
+                      (order) => _selectedStatuses.contains(
+                        order.status.trim().toUpperCase(),
+                      ),
+                    )
+                    .toList();
 
                 // 4. Estado con Datos Cargados
                 return ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: orders.length,
+                  itemCount: filteredOrders.isEmpty
+                      ? 2
+                      : filteredOrders.length + 1,
                   itemBuilder: (context, index) {
-                    final order = orders[index];
+                    if (index == 0) return _buildStatusFilters();
+                    if (filteredOrders.isEmpty) {
+                      return SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: Text(
+                            orders.isEmpty
+                                ? 'No hay órdenes registradas.'
+                                : 'No hay órdenes con los estados seleccionados.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+
+                    final order = filteredOrders[index - 1];
                     return Card(
                       margin: const EdgeInsets.symmetric(
                         horizontal: 12.0,

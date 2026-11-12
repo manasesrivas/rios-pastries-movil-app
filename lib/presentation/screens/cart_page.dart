@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_theme.dart';
 import '../../data/models/cart_availability_issue.dart';
 import '../../data/models/cart_item.dart';
 import '../../data/models/order_model.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/cart_provider.dart';
+import '../widgets/cart_item_card.dart';
 import 'login_screen.dart';
 
 class CartPage extends StatelessWidget {
   final AuthController authController;
   final CartProvider cartProvider;
+  final VoidCallback? onBack;
 
   const CartPage({
     super.key,
     required this.authController,
     required this.cartProvider,
+    this.onBack,
   });
 
   Future<void> _clearCart(BuildContext context) async {
@@ -85,6 +87,9 @@ class CartPage extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Mi carrito'),
+            leading: onBack == null
+                ? null
+                : BackButton(onPressed: onBack),
             actions: [
               if (canClear)
                 IconButton(
@@ -114,7 +119,7 @@ class CartPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: AppTheme.errorColor),
+              Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
               const SizedBox(height: 12),
               Text(cartProvider.errorMessage!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
@@ -131,11 +136,11 @@ class CartPage extends StatelessWidget {
     if (items.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 160),
-          Icon(Icons.shopping_cart_outlined, size: 56, color: Colors.grey),
-          SizedBox(height: 16),
-          Center(child: Text('Tu carrito está vacío.')),
+        children: [
+          const SizedBox(height: 160),
+          Icon(Icons.shopping_cart_outlined, size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          const SizedBox(height: 16),
+          const Center(child: Text('Tu carrito está vacío.')),
         ],
       );
     }
@@ -151,26 +156,26 @@ class CartPage extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 cartProvider.errorMessage!,
-                style: const TextStyle(color: AppTheme.errorColor),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
           if (cartProvider.hasUnavailableItems)
             Card(
-              color: AppTheme.errorColor.withValues(alpha: 0.08),
-              child: const Padding(
-                padding: EdgeInsets.all(16),
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Text(
                   'No puedes continuar con la compra porque tienes productos '
                   'no disponibles en tu carrito. Elimínalos para continuar.',
                   style: TextStyle(
-                    color: AppTheme.errorColor,
+                    color: Theme.of(context).colorScheme.onErrorContainer,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ),
           for (final item in items)
-            _CartItemCard(
+            CartItemCard(
               item: item,
               isBusy: cartProvider.isCheckingOut,
               onDecrease: () => _runAction(
@@ -204,10 +209,12 @@ class CartPage extends StatelessWidget {
                   ),
                   if (items.any((item) => !item.isAvailable)) ...[
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'Los productos no disponibles se muestran en el carrito, '
                       'pero no se incluyen en el total.',
-                      style: TextStyle(color: AppTheme.textSecondary),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ],
@@ -272,139 +279,6 @@ class _SignInPrompt extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _CartItemCard extends StatelessWidget {
-  final CartItem item;
-  final bool isBusy;
-  final VoidCallback onDecrease;
-  final VoidCallback onIncrease;
-  final VoidCallback onRemove;
-
-  const _CartItemCard({
-    required this.item,
-    required this.isBusy,
-    required this.onDecrease,
-    required this.onIncrease,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _CartProductImage(image: item.image),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 4),
-                      Text('\$${item.price} c/u'),
-                      if (!item.isAvailable) ...[
-                        const SizedBox(height: 6),
-                        const Text(
-                          'No disponible',
-                          style: TextStyle(
-                            color: AppTheme.errorColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (item.availabilityCode != null)
-                          Text(
-                            _availabilityMessage(item.availabilityCode),
-                            style: const TextStyle(
-                              color: AppTheme.errorColor,
-                              fontSize: 12,
-                            ),
-                          ),
-                      ],
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Eliminar producto',
-                  onPressed: isBusy ? null : onRemove,
-                  icon: const Icon(Icons.delete_outline),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Spacer(),
-                IconButton(
-                  tooltip: 'Disminuir cantidad',
-                  onPressed:
-                      !isBusy && item.quantity > 1 ? onDecrease : null,
-                  icon: const Icon(Icons.remove_circle_outline),
-                ),
-                Text('${item.quantity}'),
-                IconButton(
-                  tooltip: 'Aumentar cantidad',
-                  onPressed: isBusy ? null : onIncrease,
-                  icon: const Icon(Icons.add_circle_outline),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  item.isAvailable
-                      ? _formatMoney(item.unitPriceCents * item.quantity)
-                      : 'No incluido',
-                  style: TextStyle(
-                    color: item.isAvailable ? null : AppTheme.errorColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CartProductImage extends StatelessWidget {
-  final String? image;
-
-  const _CartProductImage({required this.image});
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        color: AppTheme.primaryLight,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: const Icon(Icons.fastfood, color: AppTheme.primaryColor),
-    );
-
-    if (image == null || image!.isEmpty) return fallback;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Image.network(
-        image!,
-        width: 64,
-        height: 64,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => fallback,
       ),
     );
   }
@@ -533,8 +407,8 @@ class _CheckoutDialogState extends State<_CheckoutDialog> {
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
-                style: const TextStyle(
-                  color: AppTheme.errorColor,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -543,7 +417,7 @@ class _CheckoutDialogState extends State<_CheckoutDialog> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     productError,
-                    style: const TextStyle(color: AppTheme.errorColor),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
               if (_productErrors.isNotEmpty)
@@ -575,17 +449,6 @@ class _CheckoutDialogState extends State<_CheckoutDialog> {
         ),
       ],
     );
-  }
-}
-
-String _availabilityMessage(String? code) {
-  switch (code) {
-    case 'PRODUCT_NOT_FOUND':
-      return 'Este producto fue eliminado de nuestra tienda.';
-    case 'PRODUCT_INACTIVE':
-      return 'Este producto ya no está disponible.';
-    default:
-      return 'Este producto ya no está disponible.';
   }
 }
 

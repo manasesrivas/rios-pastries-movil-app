@@ -187,18 +187,6 @@ class _ProductContent extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.info_outline,
-                            size: 16, color: scheme.onSurfaceVariant),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Estado: ${product.status}',
-                          style: TextStyle(color: scheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 24),
                     Text(
                       'Descripción',

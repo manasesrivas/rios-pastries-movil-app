@@ -25,12 +25,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _fillDemoCredentials() {
-    _emailController.text = 'cliente2@example.com';
-    _passwordController.text = 'Cliente123!';
-    widget.authController.clearError();
-  }
-
   Future<void> _submitLogin() async {
     // Cerrar teclado
     FocusScope.of(context).unfocus();
@@ -216,17 +210,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         isLoading: auth.isLoading,
                         onPressed: _submitLogin,
                       ),
-                      const SizedBox(height: 16),
-
-                      // Botón para rellenar datos demo rápidamente
-                      if (auth.isDemoMode)
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: _fillDemoCredentials,
-                            icon: const Icon(Icons.auto_awesome, size: 16),
-                            label: const Text('Rellenar credenciales de prueba'),
-                          ),
-                        ),
                     ],
                   ),
                 ),

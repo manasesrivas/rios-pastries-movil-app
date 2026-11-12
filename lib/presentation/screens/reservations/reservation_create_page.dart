@@ -9,6 +9,7 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/reservation_controller.dart';
 import '../../providers/cart_provider.dart';
 import '../../widgets/cart_item_card.dart';
+import '../halls/hall_image.dart';
 import '../login_screen.dart';
 
 class ReservationCreatePage extends StatefulWidget {
@@ -267,69 +268,72 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
         builder: (context, _) {
           return Form(
             key: _formKey,
-            child: ListView(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              children: [
-                TextFormField(
-                  controller: _dateController,
-                  readOnly: true,
-                  onTap: _pickDate,
-                  decoration: const InputDecoration(
-                    labelText: 'Fecha del evento',
-                    suffixIcon: Icon(Icons.calendar_today_outlined),
-                  ),
-                  forceErrorText: _fieldErrorText('fecha_evento'),
-                  validator: _validateDate,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _peopleController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (_) =>
-                      _controller.clearFieldError('cantidad_personas'),
-                  decoration: const InputDecoration(
-                    labelText: 'Cantidad de personas',
-                  ),
-                  forceErrorText: _fieldErrorText('cantidad_personas'),
-                  validator: _validatePeople,
-                ),
-                const SizedBox(height: 16),
-                _buildHallField(),
-                _buildServerErrors(),
-                if (_isEditing && widget.reservation != null) ...[
-                  const SizedBox(height: 16),
-                  InputDecorator(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: _dateController,
+                    readOnly: true,
+                    onTap: _pickDate,
                     decoration: const InputDecoration(
-                      labelText: 'Total de productos',
+                      labelText: 'Fecha del evento',
+                      suffixIcon: Icon(Icons.calendar_today_outlined),
                     ),
-                    child: Text(
-                      '\$${widget.reservation!.totalProductos?.toStringAsFixed(2) ?? '0.00'}',
+                    forceErrorText: _fieldErrorText('fecha_evento'),
+                    validator: _validateDate,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _peopleController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) =>
+                        _controller.clearFieldError('cantidad_personas'),
+                    decoration: const InputDecoration(
+                      labelText: 'Cantidad de personas',
+                    ),
+                    forceErrorText: _fieldErrorText('cantidad_personas'),
+                    validator: _validatePeople,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildHallField(),
+                  _buildServerErrors(),
+                  if (_isEditing && widget.reservation != null) ...[
+                    const SizedBox(height: 16),
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Total de productos',
+                      ),
+                      child: Text(
+                        '\$${widget.reservation!.totalProductos?.toStringAsFixed(2) ?? '0.00'}',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  _buildReservationOptions(),
+                  const SizedBox(height: 28),
+                  FilledButton.icon(
+                    onPressed:
+                        _controller.isSaving ||
+                            _controller.isLoadingHalls ||
+                            _controller.halls.isEmpty
+                        ? null
+                        : _submit,
+                    icon: _controller.isSaving
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: Text(
+                      _controller.isSaving
+                          ? 'Guardando...'
+                          : 'Guardar reservación',
                     ),
                   ),
                 ],
-                const SizedBox(height: 24),
-                _buildReservationOptions(),
-                const SizedBox(height: 28),
-                FilledButton.icon(
-                  onPressed:
-                      _controller.isSaving ||
-                          _controller.isLoadingHalls ||
-                          _controller.halls.isEmpty
-                      ? null
-                      : _submit,
-                  icon: _controller.isSaving
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.save_outlined),
-                  label: Text(
-                    _controller.isSaving
-                        ? 'Guardando...'
-                        : 'Guardar reservación',
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         },
@@ -378,43 +382,47 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
       );
     }
 
-    final hallError = _controller.fieldErrors['sala'];
     final availableIds = _controller.halls.map((hall) => hall.id).toSet();
     final value = availableIds.contains(_selectedHallId)
         ? _selectedHallId
         : null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DropdownButtonFormField<int>(
-          key: ValueKey(value),
-          initialValue: value,
-          decoration: InputDecoration(
-            labelText: 'Sala',
-            errorText: hallError == null || hallError.isEmpty
-                ? null
-                : hallError.first,
-          ),
-          items: _controller.halls
-              .map(
-                (hall) => DropdownMenuItem(
-                  value: hall.id,
-                  child: Text(hall.hallName),
+    return FormField<int>(
+      initialValue: value,
+      forceErrorText: _fieldErrorText('sala'),
+      validator: _validateHall,
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Selecciona una sala',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            for (final hall in _controller.halls)
+              _HallSelectionCard(
+                hall: hall,
+                selected: field.value == hall.id,
+                onTap: _controller.isSaving
+                    ? null
+                    : () {
+                        field.didChange(hall.id);
+                        setState(() => _selectedHallId = hall.id);
+                        _controller.clearFieldError('sala');
+                        _formKey.currentState?.validate();
+                      },
+              ),
+            if (field.hasError)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  field.errorText!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
-              )
-              .toList(),
-          onChanged: (hallId) {
-            setState(() => _selectedHallId = hallId);
-            _controller.clearFieldError('sala');
-            _formKey.currentState?.validate();
-          },
-          validator: _validateHall,
-        ),
-        if (_selectedHall?.capacity != null) ...[
-          const SizedBox(height: 6),
-          Text('Capacidad: ${_selectedHall!.capacity} personas'),
-        ],
-      ],
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -524,7 +532,9 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
             if (items.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('Tu carrito está vacío. Agrega productos desde la tienda.'),
+                child: Text(
+                  'Tu carrito está vacío. Agrega productos desde la tienda.',
+                ),
               )
             else
               ...items.map(_buildCartItem),
@@ -681,5 +691,78 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
     return '${date.year.toString().padLeft(4, '0')}-'
         '${date.month.toString().padLeft(2, '0')}-'
         '${date.day.toString().padLeft(2, '0')}';
+  }
+}
+
+class _HallSelectionCard extends StatelessWidget {
+  final HallModel hall;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  const _HallSelectionCard({
+    required this.hall,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final address = hall.venue?.address.trim();
+    return Semantics(
+      selected: selected,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        color: selected ? scheme.primaryContainer : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: selected ? scheme.primary : scheme.outline),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: HallImage(image: hall.image, width: 72, height: 96),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hall.hallName,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        'Local: ${hall.venueName.isEmpty ? 'No disponible' : hall.venueName}',
+                      ),
+                      Text(
+                        'Dirección: ${address == null || address.isEmpty ? 'No disponible' : address}',
+                      ),
+                      Text(
+                        hall.capacity == null
+                            ? 'Capacidad: No disponible'
+                            : 'Capacidad máxima: ${hall.capacity} personas',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  selected ? Icons.check_circle : Icons.circle_outlined,
+                  color: selected ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

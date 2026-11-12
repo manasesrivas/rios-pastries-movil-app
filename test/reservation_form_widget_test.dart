@@ -11,10 +11,97 @@ import 'package:rios_pastries/data/repositories/cart_repository.dart';
 import 'package:rios_pastries/data/services/reservation_service.dart';
 import 'package:rios_pastries/presentation/controllers/auth_controller.dart';
 import 'package:rios_pastries/presentation/providers/cart_provider.dart';
+import 'package:rios_pastries/presentation/screens/halls/hall_image.dart';
 import 'package:rios_pastries/presentation/screens/reservations/reservation_create_page.dart';
 import 'package:rios_pastries/presentation/screens/reservations/reservations_page.dart';
 
 void main() {
+  testWidgets('shows hall details and submits the selected card', (
+    tester,
+  ) async {
+    final adapter = _ReservationAdapter([
+      {
+        'statusCode': 200,
+        'data': [
+          {
+            'id': 4,
+            'name': 'Sala principal',
+            'venueName': 'Local central',
+            'venue': {
+              'id': 1,
+              'name': 'Local central',
+              'address': 'San Miguel Centro',
+              'descripcion': '',
+              'status': 'activo',
+            },
+            'image': 'image/upload/v1/sala.webp',
+            'capacity': 100,
+          },
+          {'id': 5, 'name': 'Sala pequeña', 'capacity': 10},
+        ],
+      },
+      {
+        'statusCode': 201,
+        'data': {..._createdReservationResponse(), 'sala': 5},
+      },
+    ]);
+    final cart = _createCartProvider();
+    addTearDown(cart.provider.dispose);
+    addTearDown(cart.auth.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationCreatePage(
+          authController: cart.auth,
+          cartProvider: cart.provider,
+          reservationService: ReservationService(dio: _dioWithAdapter(adapter)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Local: Local central'), findsOneWidget);
+    expect(find.text('Dirección: San Miguel Centro'), findsOneWidget);
+    expect(find.text('Capacidad máxima: 100 personas'), findsOneWidget);
+    expect(
+      tester.widgetList<HallImage>(find.byType(HallImage)).first.image,
+      'image/upload/v1/sala.webp',
+    );
+    expect(find.text('Local: No disponible'), findsOneWidget);
+    expect(find.text('Dirección: No disponible'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField).at(1), '5');
+    await tester.ensureVisible(find.text('Guardar reservación'));
+    await tester.tap(find.text('Guardar reservación'));
+    await tester.pumpAndSettle();
+    expect(find.text('Selecciona una sala.'), findsOneWidget);
+    expect(adapter.requests, hasLength(1));
+
+    await tester.ensureVisible(find.text('Sala principal'));
+    await tester.tap(find.text('Sala principal'));
+    await tester.pumpAndSettle();
+    expect(find.text('Selecciona una sala.'), findsNothing);
+    await tester.ensureVisible(find.text('Sala pequeña'));
+    await tester.tap(find.text('Sala pequeña'));
+    await tester.pumpAndSettle();
+    final selectedCard = find
+        .ancestor(of: find.text('Sala pequeña'), matching: find.byType(Card))
+        .first;
+    expect(
+      find.descendant(
+        of: selectedCard,
+        matching: find.byIcon(Icons.check_circle),
+      ),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.text('Guardar reservación'));
+    await tester.tap(find.text('Guardar reservación'));
+    await tester.pumpAndSettle();
+    final data = adapter.requests.last.data;
+    final payload = data is String ? jsonDecode(data) : data;
+    expect(payload['sala'], 5);
+    expect(find.text('Reservación creada'), findsOneWidget);
+  });
+
   testWidgets('filters reservations by confirmed and finished statuses', (
     tester,
   ) async {
@@ -58,6 +145,51 @@ void main() {
     expect(find.text('Finalizada'), findsNothing);
   });
 
+  testWidgets('shows the server hall error and clears it on a new selection', (
+    tester,
+  ) async {
+    final adapter = _ReservationAdapter([
+      {
+        'statusCode': 200,
+        'data': [
+          {'id': 4, 'name': 'Sala uno'},
+          {'id': 5, 'name': 'Sala dos'},
+        ],
+      },
+      {
+        'statusCode': 400,
+        'data': {
+          'sala': ['La sala no está disponible.'],
+        },
+      },
+    ]);
+    final cart = _createCartProvider();
+    addTearDown(cart.provider.dispose);
+    addTearDown(cart.auth.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationCreatePage(
+          authController: cart.auth,
+          cartProvider: cart.provider,
+          reservationService: ReservationService(dio: _dioWithAdapter(adapter)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(1), '5');
+    await tester.tap(find.text('Sala uno'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Guardar reservación'));
+    await tester.tap(find.text('Guardar reservación'));
+    await tester.pumpAndSettle();
+    expect(find.text('La sala no está disponible.'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Sala dos'));
+    await tester.tap(find.text('Sala dos'));
+    await tester.pumpAndSettle();
+    expect(find.text('La sala no está disponible.'), findsNothing);
+  });
+
   testWidgets('rejects attendee counts above the selected hall capacity', (
     tester,
   ) async {
@@ -83,12 +215,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButtonFormField<int>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sala principal').last);
+    await tester.tap(find.text('Sala principal'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).at(1), '3');
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -500),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar reservación'));
     await tester.pumpAndSettle();
@@ -141,6 +274,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Adjuntar los productos del carrito'));
     await tester.tap(find.text('Adjuntar los productos del carrito'));
     await tester.pumpAndSettle();
     expect(find.text('Pastel'), findsOneWidget);
@@ -196,14 +330,16 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButtonFormField<int>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sala principal').last);
+    await tester.tap(find.text('Sala principal'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).at(1), '5');
+    await tester.ensureVisible(find.text('Adjuntar los productos del carrito'));
     await tester.tap(find.text('Adjuntar los productos del carrito'));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -800));
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -800),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar reservación'));
     await tester.pumpAndSettle();
@@ -243,13 +379,15 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<int>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Sala principal').last);
+      await tester.tap(find.text('Sala principal'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextFormField).at(1), '5');
-      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -500),
+      );
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Guardar reservación'));
       await tester.tap(find.text('Guardar reservación'));
       await tester.pumpAndSettle();
 
@@ -286,6 +424,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).at(1), '0');
+    await tester.ensureVisible(find.text('Guardar reservación'));
     await tester.tap(find.text('Guardar reservación'));
     await tester.pumpAndSettle();
 
@@ -352,7 +491,11 @@ void main() {
     await tester.tap(find.text('Abrir formulario'));
     await tester.pumpAndSettle();
     expect(find.text('Editar reservación'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -500),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar reservación'));
     await tester.pumpAndSettle();

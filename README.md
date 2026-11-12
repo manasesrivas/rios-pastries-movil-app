@@ -81,6 +81,8 @@ combinación de usuario y producto es única.
 - El formulario carga las salas desde `halls/` y crea o actualiza mediante
   `reservations/` y `reservations/<id>/`. Ajusta la ruta `halls/` en
   `ApiConstants` si el backend expone otra URL.
+- Las salas se eligen mediante tarjetas con imagen, local, dirección y
+  capacidad máxima.
 - Valida fecha no pasada, cantidad positiva y sala obligatoria; los errores 400
   del backend se muestran junto al campo correspondiente.
 - En edición permite conservar una fecha pasada sin cambios y muestra

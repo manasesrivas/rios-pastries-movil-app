@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'core/network/dio_client.dart';
 import 'core/storage/token_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/controllers/auth_controller.dart';
@@ -20,6 +21,7 @@ class RiosPastriesApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Ríos Pastries',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

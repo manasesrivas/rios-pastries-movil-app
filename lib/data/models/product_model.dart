@@ -27,7 +27,7 @@ class ProductModel {
       image: json['image'] ?? '',
       description: json['description'] ?? '',
       price: json['price'],
-      category: json['category'] ?? '',
+      category: json['category']?.toString() ?? '',
       available: json['available'],
       status: json['status'] ?? '',
     );

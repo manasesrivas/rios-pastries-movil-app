@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../data/models/product_model.dart';
@@ -25,36 +23,19 @@ class ProductsSection extends StatefulWidget {
 class _ProductsSectionState extends State<ProductsSection> {
   final ProductService _productService = ProductService();
   late Future<List<ProductModel>> _productsFuture;
-  List<ProductModel> _cachedProducts = [];
-  bool _productsLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    widget.authController.addListener(_handleAuthChange);
     _productsFuture = _loadProducts();
-  }
-
-  @override
-  void dispose() {
-    widget.authController.removeListener(_handleAuthChange);
-    super.dispose();
   }
 
   Future<List<ProductModel>> _loadProducts() async {
     final products = await _productService.getProducts();
-    _cachedProducts = products;
-    _productsLoaded = true;
     if (widget.authController.isAuthenticated) {
       await widget.cartProvider.syncAvailability(products);
     }
     return products;
-  }
-
-  void _handleAuthChange() {
-    if (widget.authController.isAuthenticated && _productsLoaded) {
-      unawaited(widget.cartProvider.syncAvailability(_cachedProducts));
-    }
   }
 
   Future<void> _refreshProducts() async {
@@ -65,7 +46,9 @@ class _ProductsSectionState extends State<ProductsSection> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudieron actualizar los productos: $error')),
+        SnackBar(
+          content: Text('No se pudieron actualizar los productos: $error'),
+        ),
       );
     }
   }
@@ -92,6 +75,7 @@ class _ProductsSectionState extends State<ProductsSection> {
               }
 
               if (snapshot.hasError) {
+                debugPrint(snapshot.error.toString());
                 return ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [

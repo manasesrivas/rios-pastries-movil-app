@@ -2,12 +2,12 @@ import 'user_model.dart';
 
 class AuthResponse {
   final String token;
-  final String? refreshToken;
+  final String refreshToken;
   final UserModel user;
 
   const AuthResponse({
     required this.token,
-    this.refreshToken,
+    required this.refreshToken,
     required this.user,
   });
 

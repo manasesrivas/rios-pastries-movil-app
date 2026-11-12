@@ -28,7 +28,7 @@ class OrderService {
 
   Future<OrderModel> getOrder(int id) async {
     try {
-      final response = await _dio.get('${ApiConstants.ordersEndPoint}/$id');
+      final response = await _dio.get('${ApiConstants.ordersEndPoint}$id');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = response.data;

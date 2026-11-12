@@ -130,7 +130,7 @@ class _OrdersSectionState extends State<OrdersSection> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '${snapshot.error}',
+                              'Ocurrió un error', // --- print error 
                               textAlign: TextAlign.center,
                               style: const TextStyle(color: Colors.red),
                             ),

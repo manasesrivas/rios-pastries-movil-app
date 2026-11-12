@@ -3,8 +3,81 @@ import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../models/auth_response.dart';
 
+import 'package:flutter/foundation.dart';
+
 class AuthService {
   final Dio _dio = DioClient.instance.dio;
+
+  /// Crea el usuario (queda inactivo) y el backend envía el OTP al correo
+  Future<void> register({
+    required String username,
+    required String email,
+    required String password,
+    bool useMock = false,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.registerEndpoint,
+        data: {
+          'username': username,
+          'email': email,
+          'password': password,
+        },
+      );
+
+      if (response.statusCode != 201 && response.statusCode != 200) {
+        throw Exception('Respuesta inesperada del servidor: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw Exception(DioClient.handleDioError(e));
+    } catch (e) {
+      throw Exception('Error al crear la cuenta: $e');
+    }
+  }
+
+  /// Verifica el código; si es correcto, el backend devuelve los tokens
+  Future<AuthResponse> verifyOtp({
+    required String email,
+    required String code,
+    bool useMock = false,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.verifyOtpEndpoint,
+        data: {
+          'email': email,
+          'code': code,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return AuthResponse.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Respuesta inesperada del servidor: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw Exception(DioClient.handleDioError(e));
+    } catch (e) {
+      throw Exception('Error al verificar el código: $e');
+    }
+  }
+
+  /// Pide un código nuevo para el correo pendiente
+  Future<void> resendOtp({
+    required String email,
+    bool useMock = false,
+  }) async {
+    try {
+      await _dio.post(
+        ApiConstants.resendOtpEndpoint,
+        data: {'email': email},
+      );
+    } on DioException catch (e) {
+      throw Exception(DioClient.handleDioError(e));
+    } catch (e) {
+      throw Exception('Error al reenviar el código: $e');
+    }
+  }
 
   Future<AuthResponse> login({
     required String email,
@@ -44,11 +117,24 @@ class AuthService {
   }
 
   /// Cierre de sesión en servidor (opcional)
-  Future<void> logout() async {
-    try {
-      await _dio.post(ApiConstants.logoutEndpoint);
-    } catch (_) {
-      // Ignora error si el backend no tiene endpoint de logout activo
-    }
+  Future<void> logout(String refreshToken) async {
+   try {
+    final response = await _dio.post(
+      ApiConstants.logoutEndpoint,
+      data:{
+        'refresh': refreshToken
+      }
+    );
+    debugPrint('Logout OK: ${response.statusCode} ${response.data}');
+  } on DioException catch (e) {
+    debugPrint('Logout DioException');
+    debugPrint('  status: ${e.response?.statusCode}');
+    debugPrint('  body:   ${e.response?.data}');
+    debugPrint('  tipo:   ${e.type}');
+    debugPrint('  mensaje: ${e.message}');
+  }
+   catch (e) {
+    // debugPrint('Logout error inesperado: $e');
+  }
   }
 }

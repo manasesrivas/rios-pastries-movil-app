@@ -1,6 +1,10 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import '../constants/api_constants.dart';
 import '../storage/token_storage.dart';
+
+/// GlobalKey para poder navegar desde el interceptor sin BuildContext
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class DioClient {
   static DioClient? _instance;
@@ -19,25 +23,8 @@ class DioClient {
       ),
     );
 
-    // Interceptor para inyectar automáticamente el token Bearer en cada petición
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final token = await TokenStorage.getToken();
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
-          }
-          return handler.next(options);
-        },
-        onError: (DioException error, handler) async {
-          if (error.response?.statusCode == 401) {
-            // Token expirado o no autorizado: limpiar sesión
-            await TokenStorage.clearAuth();
-          }
-          return handler.next(error);
-        },
-      ),
-    );
+    // QueuedInterceptor: encola peticiones mientras se refresca el token
+    dio.interceptors.add(_AuthInterceptor(dio));
   }
 
   static DioClient get instance {
@@ -75,6 +62,107 @@ class DioClient {
         return 'La solicitud fue cancelada.';
       default:
         return 'Ocurrió un error inesperado al comunicarse con el servidor.';
+    }
+  }
+}
+
+/// Interceptor que encola peticiones mientras se refresca el token.
+/// Si el access token expiró (401), intenta refrescar con el refresh token.
+/// Si ambos expiraron, limpia la sesión y muestra diálogo para re-loguearse.
+class _AuthInterceptor extends QueuedInterceptor {
+  final Dio _dio;
+
+  _AuthInterceptor(this._dio);
+
+  @override
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    final token = await TokenStorage.getToken();
+    if (token != null && token.isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    handler.next(options);
+  }
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    if (err.response?.statusCode != 401) {
+      return handler.next(err);
+    }
+
+    // Evitar loop: si el 401 viene del propio refresh, no reintentar
+    if (err.requestOptions.path == ApiConstants.refreshEndpoint) {
+      await _forceLogout();
+      return handler.next(err);
+    }
+
+    // Intentar refrescar el token
+    final refreshToken = await TokenStorage.getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      await _forceLogout();
+      return handler.next(err);
+    }
+
+    try {
+      // Usar un Dio limpio (sin interceptores) para evitar loops
+      final freshDio = Dio(BaseOptions(baseUrl: _dio.options.baseUrl));
+      final response = await freshDio.post(
+        ApiConstants.refreshEndpoint,
+        data: {'refresh': refreshToken},
+      );
+
+      final newAccessToken = response.data['access'] as String;
+      await TokenStorage.saveToken(newAccessToken);
+
+      // Reintentar la petición original con el nuevo token
+      final opts = err.requestOptions;
+      opts.headers['Authorization'] = 'Bearer $newAccessToken';
+      final retryResponse = await freshDio.fetch(opts);
+      return handler.resolve(retryResponse);
+    } catch (_) {
+      // El refresh token también expiró
+      await _forceLogout();
+      return handler.next(err);
+    }
+  }
+
+  /// Limpia tokens y muestra diálogo para volver a iniciar sesión
+  Future<void> _forceLogout() async {
+    await TokenStorage.clearAuth();
+
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      // Verificar que no haya ya un diálogo abierto
+      if (ModalRoute.of(context)?.isCurrent == true) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Sesión expirada'),
+            content: const Text(
+              'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  // Navegar al inicio eliminando todo el stack
+                  navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                    '/',
+                    (_) => false,
+                  );
+                },
+                child: const Text('Iniciar sesión'),
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 }

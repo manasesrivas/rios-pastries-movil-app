@@ -16,10 +16,22 @@ class TokenStorage {
     return await _prefs!.setString(ApiConstants.tokenKey, token);
   }
 
+  /// Guarda el refresh token
+  static Future<bool> saveRefreshToken(String refreshToken) async {
+    await init();
+    return await _prefs!.setString(ApiConstants.refreshTokenKey, refreshToken);
+  }
+
   /// Obtiene el token guardado
   static Future<String?> getToken() async {
     await init();
     return _prefs!.getString(ApiConstants.tokenKey);
+  }
+
+  /// Obtiene el refresh token guardado
+  static Future<String?> getRefreshToken() async {
+    await init();
+    return _prefs!.getString(ApiConstants.refreshTokenKey);
   }
 
   /// Guarda la información del usuario logueado
@@ -46,6 +58,7 @@ class TokenStorage {
   static Future<void> clearAuth() async {
     await init();
     await _prefs!.remove(ApiConstants.tokenKey);
+    await _prefs!.remove(ApiConstants.refreshTokenKey);
     await _prefs!.remove(ApiConstants.userKey);
   }
 

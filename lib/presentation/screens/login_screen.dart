@@ -27,8 +27,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _fillDemoCredentials() {
-    _emailController.text = 'manases.rivas.3005@gmail.com';
-    _passwordController.text = 'admin';
+    _emailController.text = 'cliente2@example.com';
+    _passwordController.text = 'Cliente123!';
     widget.authController.clearError();
   }
 

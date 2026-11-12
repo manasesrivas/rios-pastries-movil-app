@@ -14,6 +14,8 @@ class ApiConstants {
   static const String productsEndPoint = 'products/';
   static const String ordersEndPoint = 'orders/';
   static const String reservationsEndPoint = 'reservations/';
+  static const String reservationsCreateEndPoint = 'reservations/create/';
+  static const String hallsEndPoint = 'halls/';
   static const String validateOrderAvailabilityEndPoint = 'orders/validate/';
 
   static const String registerEndpoint = '/register/';
@@ -28,4 +30,3 @@ class ApiConstants {
   static const String refreshTokenKey = 'auth_refresh_token';
   static const String userKey = 'auth_user';
 }
-

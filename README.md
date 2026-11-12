@@ -71,6 +71,19 @@ combinación de usuario y producto es única.
 - Los productos afectados se muestran con el mensaje devuelto por la API y deben
   eliminarse del carrito antes de volver a intentar.
 
+### Reservaciones
+
+- Consulta, creación y edición de reservaciones para el usuario autenticado.
+- El formulario carga las salas desde `halls/` y crea o actualiza mediante
+  `reservations/` y `reservations/<id>/`. Ajusta la ruta `halls/` en
+  `ApiConstants` si el backend expone otra URL.
+- Valida fecha no pasada, cantidad positiva y sala obligatoria; los errores 400
+  del backend se muestran junto al campo correspondiente.
+- En edición permite conservar una fecha pasada sin cambios y muestra
+  `total_productos` como dato de solo lectura.
+- La solicitud no envía `cliente`; el backend lo asigna desde el usuario
+  autenticado. `estado` al crear se envía como `CONFIRMADA`.
+
 ## Requisitos
 
 - Flutter y Dart compatibles con las versiones declaradas en `pubspec.yaml`.

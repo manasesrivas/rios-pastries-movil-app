@@ -5,6 +5,7 @@ import '../../../data/models/reservation_model.dart';
 import '../../../data/services/reservation_service.dart';
 import '../../controllers/auth_controller.dart';
 import '../login_screen.dart';
+import 'reservation_create_page.dart';
 
 class ReservationsPage extends StatefulWidget {
   final AuthController authController;
@@ -59,6 +60,13 @@ class _ReservationsPageState extends State<ReservationsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Mis reservaciones')),
+      floatingActionButton: widget.authController.isAuthenticated
+          ? FloatingActionButton.extended(
+              onPressed: _createReservation,
+              icon: const Icon(Icons.event),
+              label: Text('crear reservacion'),
+            )
+          : null,
       body: ListenableBuilder(
         listenable: widget.authController,
         builder: (context, _) {
@@ -137,7 +145,11 @@ class _ReservationsPageState extends State<ReservationsPage> {
                   ),
                   itemCount: reservations.length,
                   itemBuilder: (context, index) {
-                    return _ReservationCard(reservation: reservations[index]);
+                    final reservation = reservations[index];
+                    return _ReservationCard(
+                      reservation: reservation,
+                      onEdit: () => _editReservation(reservation),
+                    );
                   },
                 );
               },
@@ -147,12 +159,67 @@ class _ReservationsPageState extends State<ReservationsPage> {
       ),
     );
   }
+
+  Future<void> _createReservation() async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(
+        builder: (_) =>
+            ReservationCreatePage(reservationService: _reservationService),
+      ),
+    );
+    if (created == true && mounted) {
+      await _retry();
+    }
+  }
+
+  Future<void> _editReservation(ReservationModel reservation) async {
+    final hallId = reservation.salaId;
+    if (hallId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se encontró la sala de esta reservación.'),
+        ),
+      );
+      return;
+    }
+
+    final Reservation editableReservation;
+    try {
+      editableReservation = Reservation(
+        id: reservation.id,
+        fechaEvento: reservation.fechaEvento,
+        cantidadPersonas: reservation.cantidadPersonas,
+        sala: hallId,
+        estado: ReservationStatus.fromApiValue(reservation.estado),
+        totalProductos: reservation.totalProductos,
+      );
+    } on FormatException catch (error) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+      return;
+    }
+
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(
+        builder: (_) => ReservationCreatePage(
+          reservation: editableReservation,
+          reservationService: _reservationService,
+        ),
+      ),
+    );
+    if (updated == true && mounted) {
+      await _retry();
+    }
+  }
 }
 
 class _ReservationCard extends StatelessWidget {
   final ReservationModel reservation;
+  final VoidCallback onEdit;
 
-  const _ReservationCard({required this.reservation});
+  const _ReservationCard({required this.reservation, required this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -187,6 +254,11 @@ class _ReservationCard extends StatelessWidget {
                 _ReservationStatusBadge(
                   status: reservation.estado,
                   color: statusColor,
+                ),
+                IconButton(
+                  onPressed: onEdit,
+                  tooltip: 'Editar reservación',
+                  icon: const Icon(Icons.edit_outlined),
                 ),
               ],
             ),
@@ -265,10 +337,7 @@ class _ReservationStatusBadge extends StatelessWidget {
   final String status;
   final Color color;
 
-  const _ReservationStatusBadge({
-    required this.status,
-    required this.color,
-  });
+  const _ReservationStatusBadge({required this.status, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -321,10 +390,7 @@ class _ReservationsMessage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(message, textAlign: TextAlign.center),
-                  if (action != null) ...[
-                    const SizedBox(height: 16),
-                    action!,
-                  ],
+                  if (action != null) ...[const SizedBox(height: 16), action!],
                 ],
               ),
             ),

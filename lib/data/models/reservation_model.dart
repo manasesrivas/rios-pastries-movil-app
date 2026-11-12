@@ -1,23 +1,107 @@
+enum ReservationStatus {
+  pendiente('PENDIENTE'),
+  confirmada('CONFIRMADA'),
+  cancelada('CANCELADA'),
+  finalizada('FINALIZADA'),
+  eliminada('ELIMINADA');
+
+  const ReservationStatus(this.apiValue);
+
+  final String apiValue;
+
+  static ReservationStatus fromApiValue(Object? value) {
+    final normalized = value?.toString().toUpperCase();
+    return ReservationStatus.values.firstWhere(
+      (status) => status.apiValue == normalized,
+      orElse: () => throw FormatException(
+        'Estado de reservación no reconocido: $value.',
+      ),
+    );
+  }
+}
+
+class Reservation {
+  final int? id;
+  final DateTime fechaEvento;
+  final int cantidadPersonas;
+  final int sala;
+  final ReservationStatus estado;
+  final double? totalProductos;
+
+  const Reservation({
+    this.id,
+    required this.fechaEvento,
+    required this.cantidadPersonas,
+    required this.sala,
+    this.estado = ReservationStatus.confirmada,
+    this.totalProductos,
+  });
+
+  factory Reservation.fromJson(Map<String, dynamic> json) {
+    final eventDate = DateTime.tryParse(json['fecha_evento']?.toString() ?? '');
+    if (eventDate == null) {
+      throw const FormatException(
+        'La fecha_evento de la reservación no tiene un formato válido.',
+      );
+    }
+
+    final rawHall = json['sala'] ?? json['sala_id'] ?? json['hall'];
+    final hallId = rawHall is Map ? rawHall['id'] : rawHall;
+    final status = json['estado'];
+
+    return Reservation(
+      id: _nullableInt(json['id']),
+      fechaEvento: eventDate,
+      cantidadPersonas: _requiredInt(
+        json['cantidad_personas'],
+        'cantidad_personas',
+      ),
+      sala: _requiredInt(hallId, 'sala'),
+      estado: status == null
+          ? ReservationStatus.confirmada
+          : ReservationStatus.fromApiValue(status),
+      totalProductos: _nullableDouble(json['total_productos']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'fecha_evento':
+          '${fechaEvento.year.toString().padLeft(4, '0')}-'
+          '${fechaEvento.month.toString().padLeft(2, '0')}-'
+          '${fechaEvento.day.toString().padLeft(2, '0')}',
+      'cantidad_personas': cantidadPersonas,
+      'sala': sala,
+      'estado': estado.apiValue,
+    };
+  }
+}
+
 class ReservationModel {
   final int id;
   final DateTime fechaEvento;
   final int cantidadPersonas;
+  final int? salaId;
   final String estado;
   final HallModel hall;
   final VenueModel venue;
+  final double? totalProductos;
 
   const ReservationModel({
     required this.id,
     required this.fechaEvento,
     required this.cantidadPersonas,
+    this.salaId,
     required this.estado,
     required this.hall,
     required this.venue,
+    this.totalProductos,
   });
 
   factory ReservationModel.fromJson(Map<String, dynamic> json) {
     final hallData = _nestedMap(json['hall']);
     final venueData = _nestedMap(json['venue']);
+    final rawHall = json['sala'] ?? json['sala_id'] ?? json['hall'];
     final eventDate = DateTime.tryParse(json['fecha_evento']?.toString() ?? '');
     if (eventDate == null) {
       throw const FormatException(
@@ -32,8 +116,13 @@ class ReservationModel {
         json['cantidad_personas'],
         'cantidad_personas',
       ),
+      salaId: _nullableInt(
+        rawHall is Map ? rawHall['id'] : rawHall,
+      ) ?? _nullableInt(hallData['id']),
       estado: json['estado']?.toString() ?? '',
       hall: HallModel(
+        id: _nullableInt(rawHall is Map ? rawHall['id'] : rawHall) ??
+            _nullableInt(hallData['id']),
         hallName: _firstValue([
           hallData['hallName'],
           hallData['hall_name'],
@@ -60,11 +149,14 @@ class ReservationModel {
         ]),
         status: _nullableString(venueData['status'] ?? json['venueStatus']),
       ),
+      totalProductos: _nullableDouble(json['total_productos']),
     );
   }
 }
 
 class HallModel {
+  final int? id;
+  final String venueName;
   final String hallName;
   final String? image;
   final int? capacity;
@@ -72,6 +164,8 @@ class HallModel {
   final String? status;
 
   const HallModel({
+    this.id,
+    this.venueName = '',
     required this.hallName,
     this.image,
     this.capacity,
@@ -81,8 +175,22 @@ class HallModel {
 
   String get name => hallName;
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'venueName': venueName,
+      'name': hallName,
+      'image': image,
+      'capacity': capacity,
+      'price': price?.toStringAsFixed(2),
+      'status': status,
+    };
+  }
+
   factory HallModel.fromJson(Map<String, dynamic> json) {
     return HallModel(
+      id: _nullableInt(json['id']),
+      venueName: _firstValue([json['venueName'], json['venue_name']]),
       hallName: _firstValue([
         json['hallName'],
         json['hall_name'],

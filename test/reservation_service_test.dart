@@ -29,6 +29,7 @@ void main() {
             'capacity': 100,
             'price': '100.00',
             'status': 'DISPONIBLE',
+            'reservedDates': ['2026-11-11', '2026-11-28'],
           },
         ],
       },
@@ -52,6 +53,7 @@ void main() {
       'capacity': 100,
       'price': '100.00',
       'status': 'DISPONIBLE',
+      'reservedDates': ['2026-11-11', '2026-11-28'],
     });
   });
 

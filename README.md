@@ -101,6 +101,9 @@ combinación de usuario y producto es única.
 - Consulta las salas desde `halls/` con sesión iniciada, recarga y reintento.
 - Cada sala muestra los datos del local incluidos en la misma respuesta, sin
   realizar una solicitud adicional para el local.
+- El detalle muestra un calendario con las fechas de `reservedDates` marcadas
+  como bloqueadas. Si no se recibe ese campo, indica que no hay información.
+  El calendario es informativo y no modifica el formulario de reservación.
 
 ## Requisitos
 

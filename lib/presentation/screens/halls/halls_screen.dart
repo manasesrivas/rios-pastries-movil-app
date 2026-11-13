@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/error_handler.dart';
 import '../../../data/models/reservation_model.dart';
 import '../../../data/services/halls_service.dart';
 import '../../controllers/auth_controller.dart';
@@ -63,9 +64,10 @@ class _HallsScreenState extends State<HallsScreen> {
     try {
       await future;
     } catch (error) {
+      logError(error, operation: 'No se pudieron actualizar las salas');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudieron actualizar las salas: $error')),
+        const SnackBar(content: Text(genericErrorMessage)),
       );
     }
   }
@@ -111,6 +113,7 @@ class _HallsScreenState extends State<HallsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
+            logError(snapshot.error!, operation: 'No se pudieron cargar las salas');
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -118,7 +121,7 @@ class _HallsScreenState extends State<HallsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'No se pudieron cargar las salas: ${snapshot.error}',
+                      genericErrorMessage,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),

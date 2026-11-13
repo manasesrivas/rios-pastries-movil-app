@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/error_handler.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -25,12 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _fillDemoCredentials() {
-    _emailController.text = 'cliente2@example.com';
-    _passwordController.text = 'Cliente123!';
-    widget.authController.clearError();
-  }
-
   Future<void> _submitLogin() async {
     // Cerrar teclado
     FocusScope.of(context).unfocus();
@@ -46,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.authController.errorMessage ?? 'Error de autenticación',
+            widget.authController.errorMessage ?? genericErrorMessage,
             style: TextStyle(color: Theme.of(context).colorScheme.onError),
           ),
           backgroundColor: Theme.of(context).colorScheme.error,
@@ -216,17 +211,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         isLoading: auth.isLoading,
                         onPressed: _submitLogin,
                       ),
-                      const SizedBox(height: 16),
-
-                      // Botón para rellenar datos demo rápidamente
-                      if (auth.isDemoMode)
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: _fillDemoCredentials,
-                            icon: const Icon(Icons.auto_awesome, size: 16),
-                            label: const Text('Rellenar credenciales de prueba'),
-                          ),
-                        ),
                     ],
                   ),
                 ),

@@ -4,6 +4,40 @@ import 'package:rios_pastries/data/models/reservation_create_request.dart';
 import 'package:rios_pastries/data/models/reservation_model.dart';
 
 void main() {
+  test('parses and serializes reserved dates without changing calendar days', () {
+    final hall = HallModel.fromJson({
+      'name': 'Sala',
+      'reservedDates': ['2026-11-11', '2026-11-28', '2028-02-29'],
+    });
+
+    expect(hall.reservedDates, [
+      DateTime(2026, 11, 11),
+      DateTime(2026, 11, 28),
+      DateTime(2028, 2, 29),
+    ]);
+    expect(hall.toJson()['reservedDates'], [
+      '2026-11-11',
+      '2026-11-28',
+      '2028-02-29',
+    ]);
+    expect(HallModel.fromJson({'name': 'Sala'}).reservedDates, isNull);
+    expect(HallModel.fromJson({'name': 'Sala', 'reservedDates': []}).reservedDates, isEmpty);
+  });
+
+  test('rejects invalid reserved dates instead of displaying them as free', () {
+    for (final value in [
+      '2026-11-11',
+      [null],
+      ['2026-02-31'],
+      ['2026-11-11T00:00:00Z'],
+    ]) {
+      expect(
+        () => HallModel.fromJson({'name': 'Sala', 'reservedDates': value}),
+        throwsFormatException,
+      );
+    }
+  });
+
   test('parses and serializes the nested venue returned with a hall', () {
     final hall = HallModel.fromJson({
       'id': 1,

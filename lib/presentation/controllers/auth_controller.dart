@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../core/storage/token_storage.dart';
+import '../../core/utils/error_handler.dart';
 import '../../data/models/user_model.dart';
 import '../../data/services/auth_service.dart';
 
@@ -14,6 +15,8 @@ class AuthController extends ChangeNotifier {
   UserModel? _currentUser;
   String? _currentToken;
   bool _isDemoMode = true; // Habilitado por defecto para probar inmediatamente
+  bool _disposed = false;
+  int _sessionGeneration = 0;
 
   // Getters
   bool get isLoading => _isLoading;
@@ -24,7 +27,29 @@ class AuthController extends ChangeNotifier {
   bool get isAuthenticated => _currentToken != null && _currentToken!.isNotEmpty;
 
   AuthController() {
+    TokenStorage.sessionChanges.addListener(_syncSession);
     checkAuthStatus();
+  }
+
+  Future<void> _syncSession() async {
+    final generation = ++_sessionGeneration;
+    try {
+      final token = await TokenStorage.getToken();
+      final user = await TokenStorage.getUser();
+      if (_disposed || generation != _sessionGeneration) return;
+      _currentToken = token;
+      _currentUser = user;
+      notifyListeners();
+    } catch (error) {
+      logError(error, operation: 'No se pudo sincronizar la sesión');
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    TokenStorage.sessionChanges.removeListener(_syncSession);
+    super.dispose();
   }
 
   void toggleDemoMode(bool value) {
@@ -60,7 +85,8 @@ Future<bool> register({
     return true; // la UI navega a la pantalla del código
   } catch (e) {
     _isLoading = false;
-    _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    logError(e, operation: 'No se pudo crear la cuenta');
+    _errorMessage = genericErrorMessage;
     notifyListeners();
     return false;
   }
@@ -93,7 +119,8 @@ Future<bool> verifyOtp({required String code}) async {
     return true;
   } catch (e) {
     _isLoading = false;
-    _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    logError(e, operation: 'No se pudo verificar el código');
+    _errorMessage = genericErrorMessage;
     notifyListeners();
     return false;
   }
@@ -107,7 +134,8 @@ Future<bool> resendOtp() async {
     await _authService.resendOtp(email: _pendingEmail!, useMock: _isDemoMode);
     return true;
   } catch (e) {
-    _errorMessage = e.toString().replaceFirst('Exception: ', '');
+    logError(e, operation: 'No se pudo reenviar el código');
+    _errorMessage = genericErrorMessage;
     notifyListeners();
     return false;
   }
@@ -130,6 +158,7 @@ Future<bool> resendOtp() async {
         _currentUser = null;
       }
     } catch (e) {
+      logError(e, operation: 'No se pudo restaurar la sesión');
       _currentToken = null;
       _currentUser = null;
     } finally {
@@ -166,8 +195,8 @@ Future<bool> resendOtp() async {
       return true;
     } catch (e) {
       _isLoading = false;
-      // Remueve el prefijo "Exception: " si existe
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      logError(e, operation: 'No se pudo iniciar sesión');
+      _errorMessage = genericErrorMessage;
       notifyListeners();
       return false;
     }
@@ -175,7 +204,8 @@ Future<bool> resendOtp() async {
 
   /// Cierra sesión y borra credenciales locales
   Future<void> logout() async {
-  _isLoading = true;
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -187,14 +217,18 @@ Future<bool> resendOtp() async {
         await _authService.logout(refreshToken);
       }
 
-      // Limpieza local (se ejecuta en ambos casos)
-      await TokenStorage.clearAuth();
-      _currentToken = null;
-      _currentUser = null;
-      _errorMessage = null;
     } catch (e) {
-      _errorMessage = 'Error al cerrar sesión: $e';
+      logError(e, operation: 'No se pudo cerrar sesión');
+      _errorMessage = genericErrorMessage;
     } finally {
+      try {
+        await TokenStorage.clearAuth();
+        _currentToken = null;
+        _currentUser = null;
+      } catch (error) {
+        logError(error, operation: 'No se pudo limpiar la sesión');
+        _errorMessage = genericErrorMessage;
+      }
       _isLoading = false;
       notifyListeners();
     }

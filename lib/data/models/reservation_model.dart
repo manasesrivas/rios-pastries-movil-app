@@ -257,6 +257,7 @@ class HallModel {
   final int? capacity;
   final double? price;
   final String? status;
+  final List<DateTime>? reservedDates;
 
   const HallModel({
     this.id,
@@ -267,6 +268,7 @@ class HallModel {
     this.capacity,
     this.price,
     this.status,
+    this.reservedDates,
   });
 
   String get name => hallName;
@@ -281,6 +283,10 @@ class HallModel {
       'capacity': capacity,
       'price': price?.toStringAsFixed(2),
       'status': status,
+      if (reservedDates != null)
+        'reservedDates': reservedDates!
+            .map((date) => date.toIso8601String().substring(0, 10))
+            .toList(),
     };
   }
 
@@ -309,8 +315,30 @@ class HallModel {
       capacity: _nullableInt(json['capacity']),
       price: _nullableDouble(json['price']),
       status: _nullableString(json['status']),
+      reservedDates: _reservedDatesFromJson(json['reservedDates']),
     );
   }
+}
+
+List<DateTime>? _reservedDatesFromJson(dynamic value) {
+  if (value == null) return null;
+  if (value is! List) {
+    throw const FormatException('Las fechas reservadas de la sala no son válidas.');
+  }
+  final dates = <DateTime>[];
+  for (final item in value) {
+    if (item is! String || !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(item)) {
+      throw const FormatException('Una fecha reservada de la sala no es válida.');
+    }
+    final date = DateTime.tryParse(item);
+    if (date == null ||
+        date.year < 1 ||
+        date.toIso8601String().substring(0, 10) != item) {
+      throw const FormatException('Una fecha reservada de la sala no es válida.');
+    }
+    dates.add(date);
+  }
+  return List.unmodifiable(dates);
 }
 
 class VenueModel {

@@ -7,6 +7,7 @@ import '../login_screen.dart';
 import 'order_detail_screen.dart';
 
 import '../../../core/utils/utils.dart';
+import '../../../core/utils/error_handler.dart';
 
 class OrdersSection extends StatefulWidget {
   final AuthController authController;
@@ -169,6 +170,7 @@ class _OrdersSectionState extends State<OrdersSection> {
 
                 // 2. Estado de Error
                 if (snapshot.hasError) {
+                  logError(snapshot.error!, operation: 'No se pudieron cargar las órdenes');
                   return Center(
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -184,7 +186,7 @@ class _OrdersSectionState extends State<OrdersSection> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Ocurrió un error', // --- print error 
+                              genericErrorMessage,
                               textAlign: TextAlign.center,
                               style: const TextStyle(color: Colors.red),
                             ),

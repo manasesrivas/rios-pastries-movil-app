@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/error_handler.dart';
 import '../../../data/models/cart_item.dart';
 import '../../../data/models/reservation_model.dart';
 import '../../../data/services/reservation_service.dart';
@@ -176,8 +177,8 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
         try {
           await widget.cartProvider.clearCart();
         } catch (error) {
-          cartClearError =
-              'La reservación se creó, pero no se pudo vaciar el carrito: $error';
+          logError(error, operation: 'No se pudo vaciar el carrito');
+          cartClearError = genericErrorMessage;
         }
       }
       if (!mounted) return;
@@ -365,7 +366,7 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('No se pudieron cargar las salas: $hallsError'),
+            Text(hallsError),
             TextButton(
               onPressed: _controller.loadHalls,
               child: const Text('Reintentar'),
@@ -628,11 +629,8 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
       if (productId != null) _controller.clearItemErrorFor(productId);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.toString().replaceFirst('Bad state: ', '')),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(cartErrorMessage(error))));
     }
   }
 
@@ -669,9 +667,7 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
           for (final message in messages) Text(message),
           if (_controller.isRetryableError) ...[
             if (generalError == null || generalError.isEmpty)
-              const Text(
-                'No se pudo conectar. Verifica tu conexión e inténtalo de nuevo.',
-              ),
+              const Text(genericErrorMessage),
             TextButton(
               onPressed: _controller.isSaving ? null : _submit,
               child: const Text('Reintentar'),

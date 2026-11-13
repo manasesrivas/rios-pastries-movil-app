@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/utils/error_handler.dart';
 import '../../data/models/product_model.dart';
 import '../../data/services/product_service.dart';
 import '../controllers/auth_controller.dart';
@@ -44,10 +45,11 @@ class _ProductsSectionState extends State<ProductsSection> {
     try {
       await future;
     } catch (error) {
+      logError(error, operation: 'No se pudieron actualizar los productos');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No se pudieron actualizar los productos: $error'),
+        const SnackBar(
+          content: Text(genericErrorMessage),
         ),
       );
     }
@@ -75,7 +77,7 @@ class _ProductsSectionState extends State<ProductsSection> {
               }
 
               if (snapshot.hasError) {
-                debugPrint(snapshot.error.toString());
+                logError(snapshot.error!, operation: 'No se pudieron cargar los productos');
                 return ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
@@ -85,7 +87,7 @@ class _ProductsSectionState extends State<ProductsSection> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text(
-                            'Hubo un error',
+                            genericErrorMessage,
                             style: TextStyle(color: Colors.red),
                           ),
                           const SizedBox(height: 16),

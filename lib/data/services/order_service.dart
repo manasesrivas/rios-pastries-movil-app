@@ -22,7 +22,7 @@ class OrderService {
         throw Exception('Error al obtener órdenes: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      throw Exception('Error de red al obtener órdenes: ${e.message}');
+      throw Exception(DioClient.handleDioError(e));
     }
   }
 
@@ -37,7 +37,7 @@ class OrderService {
         throw Exception('Error al obtener la orden: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      throw Exception('Error de red al obtener la orden: ${e.message}');
+      throw Exception(DioClient.handleDioError(e));
     }
   }
 

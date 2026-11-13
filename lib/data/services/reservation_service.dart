@@ -49,7 +49,8 @@ class ReservationService {
       }
       return Reservation.fromJson(data.cast<String, dynamic>());
     } on DioException catch (error) {
-      if (error.response?.statusCode == 400) {
+      if (error.response?.statusCode == 400 &&
+          error.requestOptions.path == ApiConstants.reservationsCreateEndPoint) {
         throw ReservationApiException(
           ReservationApiError.fromJson(error.response?.data),
         );
@@ -68,7 +69,9 @@ class ReservationService {
         data: request.toJson(),
       );
     } on DioException catch (error) {
-      if (error.response?.statusCode == 400) {
+      if (error.response?.statusCode == 400 &&
+          error.requestOptions.path ==
+              '${ApiConstants.reservationsEndPoint}$id/') {
         throw ReservationApiException(
           ReservationApiError.fromJson(error.response?.data),
         );

@@ -36,6 +36,7 @@ void main() {
             },
             'image': 'image/upload/v1/sala.webp',
             'capacity': 100,
+            'price': '125.50',
           },
           {'id': 5, 'name': 'Sala pequeña', 'capacity': 10},
         ],
@@ -62,6 +63,8 @@ void main() {
     expect(find.text('Local: Local central'), findsOneWidget);
     expect(find.text('Dirección: San Miguel Centro'), findsOneWidget);
     expect(find.text('Capacidad máxima: 100 personas'), findsOneWidget);
+    expect(find.text('Precio: \$125.50'), findsOneWidget);
+    expect(find.text('Precio: No disponible'), findsOneWidget);
     expect(
       tester.widgetList<HallImage>(find.byType(HallImage)).first.image,
       'image/upload/v1/sala.webp',
@@ -86,12 +89,21 @@ void main() {
     final selectedCard = find
         .ancestor(of: find.text('Sala pequeña'), matching: find.byType(Card))
         .first;
+    final selectedRadio = find.descendant(
+      of: selectedCard,
+      matching: find.byType(Radio<int>),
+    );
+    expect(tester.widget<Radio<int>>(selectedRadio).value, 5);
     expect(
-      find.descendant(
-        of: selectedCard,
-        matching: find.byIcon(Icons.check_circle),
-      ),
-      findsOneWidget,
+      tester
+          .widget<RadioGroup<int>>(
+            find.ancestor(
+              of: selectedRadio,
+              matching: find.byType(RadioGroup<int>),
+            ),
+          )
+          .groupValue,
+      5,
     );
     await tester.ensureVisible(find.text('Guardar reservación'));
     await tester.tap(find.text('Guardar reservación'));
@@ -100,6 +112,97 @@ void main() {
     final payload = data is String ? jsonDecode(data) : data;
     expect(payload['sala'], 5);
     expect(find.text('Reservación creada'), findsOneWidget);
+  });
+
+  testWidgets('changes the reserved dates when choosing another hall', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    String date(int day) =>
+        DateTime(now.year, now.month, day).toIso8601String().substring(0, 10);
+    final adapter = _ReservationAdapter([
+      {
+        'statusCode': 200,
+        'data': [
+          {
+            'id': 4,
+            'name': 'Sala uno',
+            'reservedDates': [date(3)],
+          },
+          {
+            'id': 5,
+            'name': 'Sala dos',
+            'reservedDates': [date(5)],
+          },
+          {'id': 6, 'name': 'Sala sin fechas'},
+        ],
+      },
+    ]);
+    final cart = _createCartProvider();
+    addTearDown(cart.provider.dispose);
+    addTearDown(cart.auth.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationCreatePage(
+          authController: cart.auth,
+          cartProvider: cart.provider,
+          reservationService: ReservationService(dio: _dioWithAdapter(adapter)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Calendario'), findsNothing);
+
+    final firstRadio = find.descendant(
+      of: find
+          .ancestor(of: find.text('Sala uno'), matching: find.byType(Card))
+          .first,
+      matching: find.byType(Radio<int>),
+    );
+    await tester.ensureVisible(firstRadio);
+    await tester.tap(firstRadio);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Disponibilidad de Sala uno'));
+    await tester.pumpAndSettle();
+
+    final months = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    Finder day(int number, String status) => find.byWidgetPredicate(
+      (widget) =>
+          widget is Semantics &&
+          widget.properties.label ==
+              '$number de ${months[now.month - 1]} de ${now.year}, $status',
+    );
+    expect(day(3, 'bloqueado'), findsOneWidget);
+    expect(day(5, 'sin reserva registrada'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Sala dos'));
+    await tester.tap(find.text('Sala dos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Disponibilidad de Sala dos'), findsOneWidget);
+    expect(day(3, 'sin reserva registrada'), findsOneWidget);
+    expect(day(5, 'bloqueado'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Sala sin fechas'));
+    await tester.tap(find.text('Sala sin fechas'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('No hay información de fechas bloqueadas.'),
+      findsOneWidget,
+    );
+    expect(adapter.requests, hasLength(1));
   });
 
   testWidgets('filters reservations by confirmed and finished statuses', (
@@ -182,12 +285,162 @@ void main() {
     await tester.ensureVisible(find.text('Guardar reservación'));
     await tester.tap(find.text('Guardar reservación'));
     await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Ocurrió un error'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Aceptar'));
+    await tester.pumpAndSettle();
     expect(find.text('La sala no está disponible.'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Sala dos'));
     await tester.tap(find.text('Sala dos'));
     await tester.pumpAndSettle();
     expect(find.text('La sala no está disponible.'), findsNothing);
+  });
+
+  testWidgets('shows a dialog when halls fail to load and allows retry', (
+    tester,
+  ) async {
+    final adapter = _ReservationAdapter([
+      {
+        'statusCode': 503,
+        'data': {'detail': 'server detail'},
+      },
+      {
+        'statusCode': 200,
+        'data': [
+          {'id': 4, 'name': 'Sala principal'},
+        ],
+      },
+    ]);
+    final cart = _createCartProvider();
+    addTearDown(cart.provider.dispose);
+    addTearDown(cart.auth.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationCreatePage(
+          authController: cart.auth,
+          cartProvider: cart.provider,
+          reservationService: ReservationService(dio: _dioWithAdapter(adapter)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Ocurrió un error'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('server detail'), findsNothing);
+    await tester.tap(find.text('Aceptar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reintentar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sala principal'), findsOneWidget);
+    expect(adapter.requests, hasLength(2));
+  });
+
+  testWidgets('shows a dialog on save failure and permits a retry', (
+    tester,
+  ) async {
+    final adapter = _ReservationAdapter([
+      {
+        'statusCode': 200,
+        'data': [
+          {'id': 4, 'name': 'Sala principal'},
+        ],
+      },
+      {
+        'statusCode': 503,
+        'data': {'detail': 'server detail'},
+      },
+      {'statusCode': 201, 'data': _createdReservationResponse()},
+    ]);
+    final cart = _createCartProvider();
+    addTearDown(cart.provider.dispose);
+    addTearDown(cart.auth.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationCreatePage(
+          authController: cart.auth,
+          cartProvider: cart.provider,
+          reservationService: ReservationService(dio: _dioWithAdapter(adapter)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sala principal'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(1), '5');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Guardar reservación'));
+    await tester.tap(find.text('Guardar reservación'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Ocurrió un error'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('server detail'), findsNothing);
+    await tester.tap(find.text('Aceptar'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Reintentar'));
+    await tester.tap(find.text('Reintentar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Reservación creada'), findsOneWidget);
+    expect(adapter.requests, hasLength(3));
+  });
+
+  testWidgets('shows a dialog when a cart action fails', (tester) async {
+    final adapter = _ReservationAdapter([
+      {
+        'statusCode': 200,
+        'data': [
+          {'id': 4, 'name': 'Sala principal'},
+        ],
+      },
+    ]);
+    final auth = _AuthenticatedAuthController();
+    final provider = CartProvider(
+      authController: auth,
+      repository: _FailingCartRepository([
+        _cartItem(id: 1, productId: 1, name: 'Pastel', price: '25.00'),
+      ]),
+    );
+    addTearDown(provider.dispose);
+    addTearDown(auth.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReservationCreatePage(
+          authController: auth,
+          cartProvider: provider,
+          reservationService: ReservationService(dio: _dioWithAdapter(adapter)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Adjuntar los productos del carrito'));
+    await tester.tap(find.text('Adjuntar los productos del carrito'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byTooltip('Eliminar producto'));
+    await tester.tap(find.byTooltip('Eliminar producto'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Ocurrió un error'),
+      ),
+      findsOneWidget,
+    );
+    expect(provider.items, hasLength(1));
   });
 
   testWidgets('rejects attendee counts above the selected hall capacity', (
@@ -218,10 +471,8 @@ void main() {
     await tester.tap(find.text('Sala principal'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).at(1), '3');
-    await tester.drag(
-      find.byType(SingleChildScrollView),
-      const Offset(0, -500),
-    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Guardar reservación'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar reservación'));
     await tester.pumpAndSettle();
@@ -429,6 +680,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('La cantidad debe ser mayor que cero.'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
     expect(adapter.requests, hasLength(1));
     expect(adapter.requests.single.method, 'GET');
   });
@@ -491,11 +743,11 @@ void main() {
     await tester.tap(find.text('Abrir formulario'));
     await tester.pumpAndSettle();
     expect(find.text('Editar reservación'), findsOneWidget);
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
-    await tester.drag(
-      find.byType(SingleChildScrollView),
-      const Offset(0, -500),
+    expect(
+      tester.widget<RadioGroup<int>>(find.byType(RadioGroup<int>)).groupValue,
+      4,
     );
+    await tester.ensureVisible(find.text('Guardar reservación'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Guardar reservación'));
     await tester.pumpAndSettle();
@@ -601,6 +853,15 @@ class _MemoryCartRepository extends CartRepository {
   @override
   Future<void> clearCart(int userId) async {
     _items.clear();
+  }
+}
+
+class _FailingCartRepository extends _MemoryCartRepository {
+  _FailingCartRepository(super.items);
+
+  @override
+  Future<void> removeProduct(int userId, int productId) async {
+    throw Exception('Error de prueba');
   }
 }
 

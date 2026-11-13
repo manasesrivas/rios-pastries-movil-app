@@ -10,6 +10,7 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/reservation_controller.dart';
 import '../../providers/cart_provider.dart';
 import '../../widgets/cart_item_card.dart';
+import '../halls/hall_calendar.dart';
 import '../halls/hall_image.dart';
 import '../login_screen.dart';
 
@@ -55,7 +56,7 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
     _peopleController = TextEditingController(
       text: reservation?.cantidadPersonas.toString() ?? '',
     );
-    unawaited(_controller.loadHalls());
+    unawaited(_loadHalls());
   }
 
   @override
@@ -73,6 +74,29 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
 
   DateTime _dateOnly(DateTime date) =>
       DateTime(date.year, date.month, date.day);
+
+  Future<void> _loadHalls() async {
+    if (_controller.isLoadingHalls) return;
+    await _controller.loadHalls();
+    if (!mounted || _controller.hallsError == null) return;
+    await _showErrorDialog();
+  }
+
+  Future<void> _showErrorDialog({String message = genericErrorMessage}) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Aceptar'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _pickDate() async {
     final originalDate = widget.reservation?.fechaEvento;
@@ -154,6 +178,7 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
   }
 
   Future<void> _submit() async {
+    if (_controller.isSaving) return;
     if (!_formKey.currentState!.validate()) return;
     final hallId = _selectedHallId;
     if (hallId == null) return;
@@ -184,6 +209,10 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
       if (!mounted) return;
       await _showConfirmation(cartClearError: cartClearError);
     } else if (!saved) {
+      await _showErrorDialog(
+        message: _controller.cartError ?? genericErrorMessage,
+      );
+      if (!mounted) return;
       if (_controller.sessionExpired) {
         Navigator.of(context).pushAndRemoveUntil<void>(
           MaterialPageRoute<void>(
@@ -299,6 +328,14 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
                   ),
                   const SizedBox(height: 16),
                   _buildHallField(),
+                  if (_selectedHall case final hall?) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Disponibilidad de ${hall.hallName}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    HallCalendar(reservedDates: hall.reservedDates),
+                  ],
                   _buildServerErrors(),
                   if (_isEditing && widget.reservation != null) ...[
                     const SizedBox(height: 16),
@@ -367,10 +404,7 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(hallsError),
-            TextButton(
-              onPressed: _controller.loadHalls,
-              child: const Text('Reintentar'),
-            ),
+            TextButton(onPressed: _loadHalls, child: const Text('Reintentar')),
           ],
         ),
       );
@@ -392,36 +426,45 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
       forceErrorText: _fieldErrorText('sala'),
       validator: _validateHall,
       builder: (field) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Selecciona una sala',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            for (final hall in _controller.halls)
-              _HallSelectionCard(
-                hall: hall,
-                selected: field.value == hall.id,
-                onTap: _controller.isSaving
-                    ? null
-                    : () {
-                        field.didChange(hall.id);
-                        setState(() => _selectedHallId = hall.id);
-                        _controller.clearFieldError('sala');
-                        _formKey.currentState?.validate();
-                      },
+        void selectHall(int? id) {
+          if (id == null || _controller.isSaving) return;
+          field.didChange(id);
+          setState(() => _selectedHallId = id);
+          _controller.clearFieldError('sala');
+          _formKey.currentState?.validate();
+        }
+
+        return RadioGroup<int>(
+          groupValue: field.value,
+          onChanged: selectHall,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Selecciona una sala',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-            if (field.hasError)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  field.errorText!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+              const SizedBox(height: 8),
+              for (final hall in _controller.halls)
+                _HallSelectionCard(
+                  hall: hall,
+                  selected: field.value != null && field.value == hall.id,
+                  onTap: _controller.isSaving || hall.id == null
+                      ? null
+                      : () => selectHall(hall.id),
                 ),
-              ),
-          ],
+              if (field.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    field.errorText!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );
@@ -628,9 +671,9 @@ class _ReservationCreatePageState extends State<ReservationCreatePage> {
       await action();
       if (productId != null) _controller.clearItemErrorFor(productId);
     } catch (error) {
+      final message = cartErrorMessage(error);
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(cartErrorMessage(error))));
+      await _showErrorDialog(message: message);
     }
   }
 
@@ -746,14 +789,17 @@ class _HallSelectionCard extends StatelessWidget {
                             ? 'Capacidad: No disponible'
                             : 'Capacidad máxima: ${hall.capacity} personas',
                       ),
+                      Text(
+                        hall.price == null
+                            ? 'Precio: No disponible'
+                            : 'Precio: \$${hall.price!.toStringAsFixed(2)}',
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(
-                  selected ? Icons.check_circle : Icons.circle_outlined,
-                  color: selected ? scheme.primary : scheme.onSurfaceVariant,
-                ),
+                if (hall.id != null)
+                  Radio<int>(value: hall.id!, enabled: onTap != null),
               ],
             ),
           ),

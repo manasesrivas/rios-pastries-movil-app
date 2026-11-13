@@ -45,7 +45,7 @@ class HallDetailScreen extends StatelessWidget {
                         ? null
                         : '\$${hall.price!.toStringAsFixed(2)}',
                   ),
-                  _DetailRow(label: 'Estado', value: hall.status),
+                  // _DetailRow(label: 'Estado', value: hall.status),
                 ],
               ),
             ),
@@ -67,7 +67,7 @@ class HallDetailScreen extends StatelessWidget {
                   ),
                   _DetailRow(label: 'Dirección', value: venue?.address),
                   _DetailRow(label: 'Descripción', value: venue?.descripcion),
-                  _DetailRow(label: 'Estado', value: venue?.status),
+                  // _DetailRow(label: 'Estado', value: venue?.status),
                 ],
               ),
             ),

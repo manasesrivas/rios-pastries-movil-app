@@ -2,8 +2,8 @@ class ApiConstants {
   // TODO: Reemplaza esta URL con la dirección base de tu API real
   // Para Android Emulator suele ser http://10.0.2.2:8000 o http://10.0.2.2:3000
   // Para dispositivo físico o producción usa https://tu-dominio.com/api
-  static const String baseUrl = 'http://127.0.0.1:8000/api/';
-  // static const String baseUrl = 'https://riospastries.duckdns.org/api/';
+  // static const String baseUrl = 'http://127.0.0.1:8000/api/';
+  static const String baseUrl = 'https://riospastries.duckdns.org/api/';
   static const String cloudinaryCloudName = 'ddcxvarng';
 
   // Endpoints
